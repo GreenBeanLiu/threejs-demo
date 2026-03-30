@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useThree, useFrame } from '@react-three/fiber'
 import { useGLTF, Environment, Grid, OrbitControls, Bounds, useBounds } from '@react-three/drei'
 import * as THREE from 'three'
@@ -27,13 +27,20 @@ function Model({
   url,
   settings,
   onInfo,
+  onBottomY,
+  autoRotate,
+  autoRotateSpeed,
 }: {
   url: string
   settings: ViewerSettings
   onInfo: (info: ModelInfo) => void
+  onBottomY: (y: number) => void
+  autoRotate: boolean
+  autoRotateSpeed: number
 }) {
   const { scene } = useGLTF(url)
   const bounds = useBounds()
+  const groupRef = useRef<THREE.Group>(null)
   const reported = useRef(false)
 
   useEffect(() => {
@@ -53,7 +60,6 @@ function Model({
         const idx = geo.index
         if (idx) triangleCount += idx.count / 3
         else if (pos) triangleCount += pos.count / 3
-
         const mats = Array.isArray(obj.material) ? obj.material : [obj.material]
         mats.forEach(m => {
           materials.add(m)
@@ -68,8 +74,13 @@ function Model({
     })
 
     onInfo({ meshCount, vertexCount: Math.round(vertexCount), materialCount: materials.size, textureCount: textures.size, triangleCount: Math.round(triangleCount) })
+
+    // Calculate bounding box to find bottom Y
+    const box = new THREE.Box3().setFromObject(scene)
+    onBottomY(box.min.y)
+
     bounds.refresh(scene).fit()
-  }, [scene, bounds, onInfo])
+  }, [scene, bounds, onInfo, onBottomY])
 
   // Apply wireframe
   useEffect(() => {
@@ -81,14 +92,18 @@ function Model({
     })
   }, [scene, settings.wireframe])
 
-  return <primitive object={scene} />
-}
-function AutoRotate({ speed }: { speed: number }) {
-  const { scene } = useThree()
+  // Auto-rotate the group (not the whole scene)
   useFrame((_, delta) => {
-    scene.rotation.y += delta * speed * 0.5
+    if (autoRotate && groupRef.current) {
+      groupRef.current.rotation.y += delta * autoRotateSpeed * 0.5
+    }
   })
-  return null
+
+  return (
+    <group ref={groupRef}>
+      <primitive object={scene} />
+    </group>
+  )
 }
 
 export default function ModelViewer({
@@ -101,6 +116,7 @@ export default function ModelViewer({
   onInfo: (info: ModelInfo) => void
 }) {
   const { gl } = useThree()
+  const [bottomY, setBottomY] = useState<number>(-0.01)
 
   useEffect(() => {
     gl.toneMappingExposure = settings.exposure
@@ -113,22 +129,27 @@ export default function ModelViewer({
       <directionalLight position={[5, 8, 5]} intensity={settings.lightIntensity} castShadow />
       <Environment preset={settings.environment} />
       <Bounds fit clip observe margin={1.2}>
-        <Model url={url} settings={settings} onInfo={onInfo} />
+        <Model
+          url={url}
+          settings={settings}
+          onInfo={onInfo}
+          onBottomY={setBottomY}
+          autoRotate={settings.autoRotate}
+          autoRotateSpeed={settings.autoRotateSpeed}
+        />
       </Bounds>
       {settings.showGrid && (
         <Grid
-          position={[0, -0.01, 0]}
+          position={[0, bottomY - 0.001, 0]}
           args={[20, 20]}
-          cellColor="#666"
-          sectionColor="#888"
-          fadeDistance={25}
+          cellColor="#555"
+          sectionColor="#777"
+          fadeDistance={30}
           fadeStrength={1}
         />
       )}
       {settings.showAxes && <axesHelper args={[2]} />}
-      {settings.autoRotate && <AutoRotate speed={settings.autoRotateSpeed} />}
       <OrbitControls makeDefault />
     </>
   )
 }
-
