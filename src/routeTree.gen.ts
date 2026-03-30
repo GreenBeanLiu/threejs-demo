@@ -9,38 +9,8 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as QuadRouteImport } from './routes/quad'
-import { Route as MaterialsRouteImport } from './routes/materials'
-import { Route as LightingRouteImport } from './routes/lighting'
-import { Route as GlbRouteImport } from './routes/glb'
-import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 
-const QuadRoute = QuadRouteImport.update({
-  id: '/quad',
-  path: '/quad',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MaterialsRoute = MaterialsRouteImport.update({
-  id: '/materials',
-  path: '/materials',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LightingRoute = LightingRouteImport.update({
-  id: '/lighting',
-  path: '/lighting',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GlbRoute = GlbRouteImport.update({
-  id: '/glb',
-  path: '/glb',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AboutRoute = AboutRouteImport.update({
-  id: '/about',
-  path: '/about',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -49,90 +19,28 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
-  '/glb': typeof GlbRoute
-  '/lighting': typeof LightingRoute
-  '/materials': typeof MaterialsRoute
-  '/quad': typeof QuadRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
-  '/glb': typeof GlbRoute
-  '/lighting': typeof LightingRoute
-  '/materials': typeof MaterialsRoute
-  '/quad': typeof QuadRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
-  '/glb': typeof GlbRoute
-  '/lighting': typeof LightingRoute
-  '/materials': typeof MaterialsRoute
-  '/quad': typeof QuadRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about' | '/glb' | '/lighting' | '/materials' | '/quad'
+  fullPaths: '/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/glb' | '/lighting' | '/materials' | '/quad'
-  id:
-    | '__root__'
-    | '/'
-    | '/about'
-    | '/glb'
-    | '/lighting'
-    | '/materials'
-    | '/quad'
+  to: '/'
+  id: '__root__' | '/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AboutRoute: typeof AboutRoute
-  GlbRoute: typeof GlbRoute
-  LightingRoute: typeof LightingRoute
-  MaterialsRoute: typeof MaterialsRoute
-  QuadRoute: typeof QuadRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/quad': {
-      id: '/quad'
-      path: '/quad'
-      fullPath: '/quad'
-      preLoaderRoute: typeof QuadRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/materials': {
-      id: '/materials'
-      path: '/materials'
-      fullPath: '/materials'
-      preLoaderRoute: typeof MaterialsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/lighting': {
-      id: '/lighting'
-      path: '/lighting'
-      fullPath: '/lighting'
-      preLoaderRoute: typeof LightingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/glb': {
-      id: '/glb'
-      path: '/glb'
-      fullPath: '/glb'
-      preLoaderRoute: typeof GlbRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/about': {
-      id: '/about'
-      path: '/about'
-      fullPath: '/about'
-      preLoaderRoute: typeof AboutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -145,11 +53,6 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AboutRoute: AboutRoute,
-  GlbRoute: GlbRoute,
-  LightingRoute: LightingRoute,
-  MaterialsRoute: MaterialsRoute,
-  QuadRoute: QuadRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

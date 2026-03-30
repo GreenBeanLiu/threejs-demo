@@ -1,64 +1,83 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
+import { Canvas } from '@react-three/fiber'
+import { Suspense, useCallback, useState } from 'react'
+import ModelViewer, { type ModelInfo, type ViewerSettings } from '../components/ModelViewer'
+import ControlPanel from '../components/ControlPanel'
+import DropZone from '../components/DropZone'
 
-export const Route = createFileRoute('/')({ component: HomePage })
+export const Route = createFileRoute('/')({ component: ViewerPage })
 
-const scenes = [
-  {
-    to: '/glb',
-    title: 'GLB Textures',
-    emoji: '🖼️',
-    desc: 'Why GLB models lose textures in Three.js and how to fix it — colorSpace, envMap, and texture encoding.',
-  },
-  {
-    to: '/quad',
-    title: 'Quad Faces',
-    emoji: '🔳',
-    desc: 'How GPUs triangulate quads, why face normals matter, and how to visualise the underlying triangle mesh.',
-  },
-  {
-    to: '/materials',
-    title: 'Materials',
-    emoji: '✨',
-    desc: 'Compare MeshBasicMaterial, MeshStandardMaterial and MeshPhysicalMaterial. Tweak roughness, metalness, and transmission.',
-  },
-  {
-    to: '/lighting',
-    title: 'Lighting',
-    emoji: '💡',
-    desc: 'Explore AmbientLight, DirectionalLight, PointLight, SpotLight and HDRI environment maps side by side.',
-  },
-] as const
+const DEFAULT_SETTINGS: ViewerSettings = {
+  environment: 'city',
+  wireframe: false,
+  autoRotate: false,
+  autoRotateSpeed: 1,
+  showGrid: true,
+  showAxes: false,
+  exposure: 1,
+  background: '#1a1a2e',
+  lightIntensity: 1,
+}
 
-function HomePage() {
+function ViewerPage() {
+  const [modelUrl, setModelUrl] = useState<string | null>(null)
+  const [fileName, setFileName] = useState<string | null>(null)
+  const [modelInfo, setModelInfo] = useState<ModelInfo | null>(null)
+  const [settings, setSettings] = useState<ViewerSettings>(DEFAULT_SETTINGS)
+
+  const handleFile = useCallback((url: string, name: string) => {
+    setModelUrl(prev => { if (prev) URL.revokeObjectURL(prev); return url })
+    setFileName(name)
+    setModelInfo(null)
+  }, [])
+
+  const patchSettings = useCallback((patch: Partial<ViewerSettings>) => {
+    setSettings(s => ({ ...s, ...patch }))
+  }, [])
+
   return (
-    <main className="page-wrap px-4 pb-8 pt-14">
-      <section className="island-shell rise-in relative overflow-hidden rounded-[2rem] px-6 py-10 sm:px-10 sm:py-14">
-        <div className="pointer-events-none absolute -left-20 -top-24 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(79,184,178,0.32),transparent_66%)]" />
-        <div className="pointer-events-none absolute -bottom-20 -right-20 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(47,106,74,0.18),transparent_66%)]" />
-        <p className="island-kicker mb-3">Interactive 3D Learning</p>
-        <h1 className="display-title mb-5 max-w-3xl text-4xl leading-[1.02] font-bold tracking-tight text-[var(--sea-ink)] sm:text-6xl">
-          Three.js Learning Lab
-        </h1>
-        <p className="mb-8 max-w-2xl text-base text-[var(--sea-ink-soft)] sm:text-lg">
-          Hands-on interactive scenes for mastering Three.js — textures, geometry,
-          materials, and lighting. Built with React Three Fiber and TanStack Start.
-        </p>
-      </section>
-
-      <section className="mt-8 grid gap-4 sm:grid-cols-2">
-        {scenes.map(({ to, title, emoji, desc }, index) => (
-          <Link
-            key={to}
-            to={to}
-            className="island-shell feature-card rise-in block rounded-2xl p-6 no-underline transition hover:-translate-y-1"
-            style={{ animationDelay: `${index * 90 + 80}ms` }}
+    <div className="flex h-[calc(100vh-57px)] gap-3 p-3">
+      {/* Canvas area */}
+      <div className="relative min-w-0 flex-1 overflow-hidden rounded-2xl">
+        {modelUrl ? (
+          <Canvas
+            camera={{ position: [0, 2, 5], fov: 50 }}
+            gl={{ antialias: true, toneMapping: 4 /* ACESFilmicToneMapping */ }}
+            shadows
+            style={{ width: '100%', height: '100%' }}
           >
-            <div className="mb-3 text-3xl">{emoji}</div>
-            <h2 className="mb-2 text-lg font-semibold text-[var(--sea-ink)]">{title}</h2>
-            <p className="m-0 text-sm text-[var(--sea-ink-soft)]">{desc}</p>
-          </Link>
-        ))}
-      </section>
-    </main>
+            <Suspense fallback={null}>
+              <ModelViewer
+                url={modelUrl}
+                settings={settings}
+                onInfo={setModelInfo}
+              />
+            </Suspense>
+          </Canvas>
+        ) : (
+          <DropZone onFile={handleFile} />
+        )}
+
+        {/* Bottom bar when model loaded */}
+        {modelUrl && (
+          <div className="absolute bottom-3 left-3 flex items-center gap-2">
+            <label className="flex cursor-pointer items-center gap-2 rounded-full border border-[var(--chip-line)] bg-[var(--header-bg)] px-3 py-1.5 text-xs font-medium text-[var(--sea-ink)] shadow backdrop-blur-sm transition hover:bg-[var(--chip-bg)]">
+              <input type="file" accept=".glb,.gltf" className="sr-only" onChange={e => { const f = e.target.files?.[0]; if (f) { const u = URL.createObjectURL(f); handleFile(u, f.name) } }} />
+              📂 Change model
+            </label>
+          </div>
+        )}
+      </div>
+
+      {/* Control panel */}
+      <div className="w-56 shrink-0">
+        <ControlPanel
+          settings={settings}
+          onChange={patchSettings}
+          modelInfo={modelInfo}
+          fileName={fileName}
+        />
+      </div>
+    </div>
   )
 }
