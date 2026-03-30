@@ -5,6 +5,7 @@ import ModelViewer, { type ModelInfo, type ViewerSettings } from '../components/
 import ControlPanel from '../components/ControlPanel'
 import DropZone from '../components/DropZone'
 import Header from '../components/Header'
+import HistoryPanel from '../components/HistoryPanel'
 
 export const Route = createFileRoute('/')({ component: ViewerPage })
 
@@ -82,6 +83,7 @@ function ViewerPage() {
           <div className="h-64 w-full max-w-xl">
             <DropZone onFile={handleFile} />
           </div>
+          <HistoryPanel onSelect={handleFile} />
           <div className="flex flex-wrap justify-center gap-6 text-sm text-[var(--sea-ink-soft)]">
             {[
               ['360° View', 'Rotate and inspect from any angle'],

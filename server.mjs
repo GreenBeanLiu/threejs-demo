@@ -1,8 +1,11 @@
 import { createServer } from 'node:http'
-import { readFile, stat } from 'node:fs/promises'
+import { readFile, stat, mkdir } from 'node:fs/promises'
 import { join, extname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import app from './dist/server/server.js'
+
+// Ensure upload directories exist
+await mkdir('/uploads/models', { recursive: true }).catch(() => {})
 
 const port = process.env.PORT || 3000
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
@@ -64,11 +67,23 @@ createServer(async (req, res) => {
     if (val) headers.set(key, Array.isArray(val) ? val.join(', ') : val)
   }
 
-  const body = ['GET', 'HEAD'].includes(req.method) ? undefined : await new Promise((resolve) => {
+  const MAX_BODY = 100 * 1024 * 1024 // 100 MB
+  const body = ['GET', 'HEAD'].includes(req.method) ? undefined : await new Promise((resolve, reject) => {
     const chunks = []
-    req.on('data', c => chunks.push(c))
+    let size = 0
+    req.on('data', c => {
+      size += c.length
+      if (size > MAX_BODY) { req.destroy(); reject(new Error('Payload too large')); return }
+      chunks.push(c)
+    })
     req.on('end', () => resolve(Buffer.concat(chunks)))
+    req.on('error', reject)
+  }).catch(() => {
+    res.writeHead(413, { 'Content-Type': 'text/plain' })
+    res.end('Payload too large')
+    return null
   })
+  if (body === null) return
 
   const request = new Request(url, {
     method: req.method,

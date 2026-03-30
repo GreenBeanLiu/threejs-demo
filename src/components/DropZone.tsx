@@ -4,13 +4,29 @@ interface DropZoneProps {
   onFile: (url: string, name: string) => void
 }
 
+async function uploadToServer(file: File): Promise<string | null> {
+  try {
+    const fd = new FormData()
+    fd.append('file', file)
+    const res = await fetch('/api/upload', { method: 'POST', body: fd })
+    if (!res.ok) return null
+    const data = await res.json() as { path: string }
+    return data.path
+  } catch {
+    return null
+  }
+}
+
 export default function DropZone({ onFile }: DropZoneProps) {
   const [dragging, setDragging] = useState(false)
 
-  const handleFile = useCallback((file: File) => {
+  const handleFile = useCallback(async (file: File) => {
     if (!file.name.match(/\.(glb|gltf)$/i)) return
-    const url = URL.createObjectURL(file)
-    onFile(url, file.name)
+    // Use local object URL immediately for fast preview
+    const localUrl = URL.createObjectURL(file)
+    onFile(localUrl, file.name)
+    // Upload in background for history persistence
+    uploadToServer(file)
   }, [onFile])
 
   const onDrop = useCallback((e: React.DragEvent) => {
