@@ -1,29 +1,43 @@
 import { createAPIFileRoute } from '@tanstack/react-start/api'
-import { readFile } from 'node:fs/promises'
-import { existsSync } from 'node:fs'
-import { join } from 'node:path'
+import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
 
-const UPLOAD_DIR = '/uploads/models'
+function getS3() {
+  return new S3Client({
+    region: 'auto',
+    endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+    credentials: {
+      accessKeyId: process.env.R2_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
+    },
+  })
+}
 
 export const APIRoute = createAPIFileRoute('/api/model/$id')({
   GET: async ({ params }) => {
     const id = params.id as string
-    // id includes extension e.g. "uuid.glb"
-    const filePath = join(UPLOAD_DIR, id)
     // Prevent path traversal
-    if (!filePath.startsWith(UPLOAD_DIR) || id.includes('..')) {
+    if (id.includes('..') || id.includes('/')) {
       return new Response('Forbidden', { status: 403 })
     }
-    if (!existsSync(filePath)) {
+    const isGltf = id.endsWith('.gltf')
+    const key = `models/${id}`
+    try {
+      const s3 = getS3()
+      const res = await s3.send(new GetObjectCommand({
+        Bucket: process.env.R2_BUCKET!,
+        Key: key,
+      }))
+      const data = await res.Body?.transformToByteArray()
+      if (!data) return new Response('Not found', { status: 404 })
+      return new Response(data, {
+        headers: {
+          'Content-Type': isGltf ? 'model/gltf+json' : 'model/gltf-binary',
+          'Cache-Control': 'public, max-age=86400',
+          'Content-Length': String(data.byteLength),
+        },
+      })
+    } catch {
       return new Response('Not found', { status: 404 })
     }
-    const data = await readFile(filePath)
-    const isGltf = id.endsWith('.gltf')
-    return new Response(data, {
-      headers: {
-        'Content-Type': isGltf ? 'model/gltf+json' : 'model/gltf-binary',
-        'Cache-Control': 'public, max-age=86400',
-      },
-    })
   },
 })

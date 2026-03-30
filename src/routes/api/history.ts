@@ -1,8 +1,5 @@
 import { createAPIFileRoute } from '@tanstack/react-start/api'
-import { readFile } from 'node:fs/promises'
-import { existsSync } from 'node:fs'
-
-const METADATA_PATH = '/uploads/metadata.json'
+import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
 
 export interface UploadRecord {
   id: string
@@ -12,11 +9,26 @@ export interface UploadRecord {
   path: string
 }
 
+function getS3() {
+  return new S3Client({
+    region: 'auto',
+    endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+    credentials: {
+      accessKeyId: process.env.R2_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
+    },
+  })
+}
+
 export async function readMetadata(): Promise<UploadRecord[]> {
-  if (!existsSync(METADATA_PATH)) return []
   try {
-    const raw = await readFile(METADATA_PATH, 'utf-8')
-    return JSON.parse(raw) as UploadRecord[]
+    const s3 = getS3()
+    const res = await s3.send(new GetObjectCommand({
+      Bucket: process.env.R2_BUCKET!,
+      Key: 'metadata.json',
+    }))
+    const body = await res.Body?.transformToString()
+    return body ? JSON.parse(body) as UploadRecord[] : []
   } catch {
     return []
   }

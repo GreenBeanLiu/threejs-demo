@@ -1,25 +1,29 @@
 import { createAPIFileRoute } from '@tanstack/react-start/api'
-import { writeFile, readFile, mkdir } from 'node:fs/promises'
-import { existsSync } from 'node:fs'
-import { join } from 'node:path'
+import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
 import { randomUUID } from 'node:crypto'
 import type { UploadRecord } from './history'
 
-const UPLOAD_DIR = '/uploads/models'
-const METADATA_PATH = '/uploads/metadata.json'
+function getS3() {
+  return new S3Client({
+    region: 'auto',
+    endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+    credentials: {
+      accessKeyId: process.env.R2_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
+    },
+  })
+}
 
-async function readMetadata(): Promise<UploadRecord[]> {
-  if (!existsSync(METADATA_PATH)) return []
+const BUCKET = () => process.env.R2_BUCKET!
+
+async function readMetadata(s3: S3Client): Promise<UploadRecord[]> {
   try {
-    const raw = await readFile(METADATA_PATH, 'utf-8')
-    return JSON.parse(raw) as UploadRecord[]
+    const res = await s3.send(new GetObjectCommand({ Bucket: BUCKET(), Key: 'metadata.json' }))
+    const body = await res.Body?.transformToString()
+    return body ? JSON.parse(body) as UploadRecord[] : []
   } catch {
     return []
   }
-}
-
-async function writeMetadata(records: UploadRecord[]) {
-  await writeFile(METADATA_PATH, JSON.stringify(records, null, 2), 'utf-8')
 }
 
 export const APIRoute = createAPIFileRoute('/api/upload')({
@@ -35,17 +39,19 @@ export const APIRoute = createAPIFileRoute('/api/upload')({
         })
       }
 
-      const ext = file.name.endsWith('.gltf') ? '.gltf' : '.glb'
+      const ext = file.name.toLowerCase().endsWith('.gltf') ? '.gltf' : '.glb'
       const id = randomUUID()
-      const filename = `${id}${ext}`
-
-      if (!existsSync(UPLOAD_DIR)) {
-        await mkdir(UPLOAD_DIR, { recursive: true })
-      }
+      const key = `models/${id}${ext}`
 
       const buffer = Buffer.from(await file.arrayBuffer())
-      const filePath = join(UPLOAD_DIR, filename)
-      await writeFile(filePath, buffer)
+      const s3 = getS3()
+
+      await s3.send(new PutObjectCommand({
+        Bucket: BUCKET(),
+        Key: key,
+        Body: buffer,
+        ContentType: ext === '.gltf' ? 'model/gltf+json' : 'model/gltf-binary',
+      }))
 
       const record: UploadRecord = {
         id,
@@ -55,10 +61,15 @@ export const APIRoute = createAPIFileRoute('/api/upload')({
         path: `/api/model/${id}${ext}`,
       }
 
-      const records = await readMetadata()
-      // Keep max 20 most recent
+      const records = await readMetadata(s3)
       const updated = [record, ...records].slice(0, 20)
-      await writeMetadata(updated)
+
+      await s3.send(new PutObjectCommand({
+        Bucket: BUCKET(),
+        Key: 'metadata.json',
+        Body: JSON.stringify(updated, null, 2),
+        ContentType: 'application/json',
+      }))
 
       return new Response(JSON.stringify(record), {
         headers: { 'Content-Type': 'application/json' },
