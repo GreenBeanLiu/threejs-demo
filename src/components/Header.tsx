@@ -1,3 +1,5 @@
+import { signOut, useSession } from '../lib/auth-client'
+
 interface HeaderProps {
   fileName?: string | null
   onUpload?: (url: string, name: string) => void
@@ -5,11 +7,18 @@ interface HeaderProps {
 }
 
 export default function Header({ fileName, onUpload, hasModel }: HeaderProps) {
+  const { data: session } = useSession()
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
     if (!f || !onUpload) return
     const url = URL.createObjectURL(f)
     onUpload(url, f.name)
+  }
+
+  const handleSignOut = async () => {
+    await signOut()
+    window.location.href = '/login'
   }
 
   return (
@@ -44,6 +53,17 @@ export default function Header({ fileName, onUpload, hasModel }: HeaderProps) {
               </svg>
               Upload model
             </label>
+          )}
+          {session?.user && (
+            <div className="flex items-center gap-2">
+              <span className="hidden text-xs text-[var(--sea-ink-soft)] sm:inline">{session.user.name || session.user.email}</span>
+              <button
+                onClick={handleSignOut}
+                className="rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-3 py-1.5 text-xs font-medium text-[var(--sea-ink-soft)] transition hover:border-red-400 hover:text-red-400"
+              >
+                Sign out
+              </button>
+            </div>
           )}
         </div>
       </div>

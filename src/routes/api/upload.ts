@@ -2,6 +2,7 @@ import { createAPIFileRoute } from '@tanstack/react-start/api'
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
 import { randomUUID } from 'node:crypto'
 import type { UploadRecord } from './history'
+import { auth } from '../../lib/auth'
 
 function getS3() {
   return new S3Client({
@@ -16,9 +17,9 @@ function getS3() {
 
 const BUCKET = () => process.env.R2_BUCKET!
 
-async function readMetadata(s3: S3Client): Promise<UploadRecord[]> {
+async function readMetadata(s3: S3Client, userId: string): Promise<UploadRecord[]> {
   try {
-    const res = await s3.send(new GetObjectCommand({ Bucket: BUCKET(), Key: 'metadata.json' }))
+    const res = await s3.send(new GetObjectCommand({ Bucket: BUCKET(), Key: `users/${userId}/metadata.json` }))
     const body = await res.Body?.transformToString()
     return body ? JSON.parse(body) as UploadRecord[] : []
   } catch {
@@ -28,6 +29,14 @@ async function readMetadata(s3: S3Client): Promise<UploadRecord[]> {
 
 export const APIRoute = createAPIFileRoute('/api/upload')({
   POST: async ({ request }) => {
+    const session = await auth.api.getSession({ headers: request.headers })
+    if (!session?.user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+    const userId = session.user.id
     try {
       const formData = await request.formData()
       const file = formData.get('file') as File | null
@@ -61,12 +70,12 @@ export const APIRoute = createAPIFileRoute('/api/upload')({
         path: `/api/model/${id}${ext}`,
       }
 
-      const records = await readMetadata(s3)
+      const records = await readMetadata(s3, userId)
       const updated = [record, ...records].slice(0, 20)
 
       await s3.send(new PutObjectCommand({
         Bucket: BUCKET(),
-        Key: 'metadata.json',
+        Key: `users/${userId}/metadata.json`,
         Body: JSON.stringify(updated, null, 2),
         ContentType: 'application/json',
       }))

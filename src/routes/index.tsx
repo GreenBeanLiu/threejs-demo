@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 import { Canvas } from '@react-three/fiber'
 import { Suspense, useCallback, useRef, useState } from 'react'
 import ModelViewer, { type ModelInfo, type ViewerSettings } from '../components/ModelViewer'
@@ -6,6 +6,7 @@ import ControlPanel from '../components/ControlPanel'
 import DropZone from '../components/DropZone'
 import Header from '../components/Header'
 import HistoryPanel from '../components/HistoryPanel'
+import { getSession } from '../lib/auth-client'
 
 export const Route = createFileRoute('/')({ component: ViewerPage })
 
