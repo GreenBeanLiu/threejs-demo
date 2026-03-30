@@ -1,16 +1,51 @@
-export default function Header() {
+interface HeaderProps {
+  fileName?: string | null
+  onUpload?: (url: string, name: string) => void
+  hasModel?: boolean
+}
+
+export default function Header({ fileName, onUpload, hasModel }: HeaderProps) {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]
+    if (!f || !onUpload) return
+    const url = URL.createObjectURL(f)
+    onUpload(url, f.name)
+  }
+
   return (
-    <header className="sticky top-0 z-50 border-b border-[var(--line)] bg-[var(--header-bg)] px-4 backdrop-blur-lg">
-      <div className="page-wrap flex items-center justify-between py-3 sm:py-4">
-        <h1 className="m-0 text-base font-semibold tracking-tight">
-          <span className="inline-flex items-center gap-2 rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-3 py-1.5 text-sm text-[var(--sea-ink)] shadow-[0_8px_24px_rgba(30,90,72,0.08)] sm:px-4 sm:py-2">
-            <span className="h-2 w-2 rounded-full bg-[linear-gradient(90deg,#56c6be,#7ed3bf)]" />
-            3D Viewer
-          </span>
-        </h1>
-        <p className="m-0 hidden text-sm text-[var(--sea-ink-soft)] sm:block">
-          Upload a GLB / GLTF model to explore it
-        </p>
+    <header className="sticky top-0 z-50 border-b border-[var(--line)] bg-[var(--header-bg)] px-5 backdrop-blur-lg">
+      <div className="flex h-14 items-center justify-between">
+        {/* Brand */}
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[linear-gradient(135deg,#56c6be,#2d9d8f)] shadow-md">
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+            </svg>
+          </div>
+          <div>
+            <span className="text-sm font-bold tracking-tight text-[var(--sea-ink)]">PackView</span>
+            {fileName && (
+              <span className="ml-2 hidden text-xs text-[var(--sea-ink-soft)] sm:inline">
+                {fileName.length > 32 ? fileName.slice(0, 32) + '…' : fileName}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-2">
+          {hasModel && onUpload && (
+            <label className="flex cursor-pointer items-center gap-1.5 rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-3 py-1.5 text-xs font-medium text-[var(--sea-ink-soft)] transition hover:border-[#56c6be] hover:text-[var(--sea-ink)]">
+              <input type="file" accept=".glb,.gltf" className="sr-only" onChange={handleChange} />
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.5 w-3.5">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              Upload model
+            </label>
+          )}
+        </div>
       </div>
     </header>
   )

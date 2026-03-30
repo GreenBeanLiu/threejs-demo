@@ -19,7 +19,7 @@ export const Route = createRootRoute({
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'Three.js Learning Lab',
+        title: 'PackView — 3D Packaging Viewer',
       },
     ],
     links: [
@@ -42,7 +42,6 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <body className="font-sans antialiased [overflow-wrap:anywhere] selection:bg-[rgba(79,184,178,0.24)]">
         <Header />
         {children}
-        <Footer />
         <TanStackDevtools
           config={{
             position: 'bottom-right',
