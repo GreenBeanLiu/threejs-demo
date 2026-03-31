@@ -1,8 +1,8 @@
 import { createAPIFileRoute } from '@tanstack/react-start/api'
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { randomUUID } from 'node:crypto'
-import type { UploadRecord } from './history'
 import { auth } from '../../lib/auth'
+import { getDb } from '../../lib/db'
 
 function getS3() {
   return new S3Client({
@@ -16,16 +16,6 @@ function getS3() {
 }
 
 const BUCKET = () => process.env.R2_BUCKET!
-
-async function readMetadata(s3: S3Client, userId: string): Promise<UploadRecord[]> {
-  try {
-    const res = await s3.send(new GetObjectCommand({ Bucket: BUCKET(), Key: `users/${userId}/metadata.json` }))
-    const body = await res.Body?.transformToString()
-    return body ? JSON.parse(body) as UploadRecord[] : []
-  } catch {
-    return []
-  }
-}
 
 export const APIRoute = createAPIFileRoute('/api/upload')({
   POST: async ({ request }) => {
@@ -62,23 +52,20 @@ export const APIRoute = createAPIFileRoute('/api/upload')({
         ContentType: ext === '.gltf' ? 'model/gltf+json' : 'model/gltf-binary',
       }))
 
-      const record: UploadRecord = {
+      // Insert into SQLite models table
+      const db = getDb()
+      db.prepare(`
+        INSERT INTO models (id, user_id, name, size, r2_key, uploaded_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(id, userId, file.name, file.size, key, new Date().toISOString())
+
+      const record = {
         id,
         name: file.name,
         size: file.size,
         uploadedAt: new Date().toISOString(),
         path: `/api/model/${id}${ext}`,
       }
-
-      const records = await readMetadata(s3, userId)
-      const updated = [record, ...records].slice(0, 20)
-
-      await s3.send(new PutObjectCommand({
-        Bucket: BUCKET(),
-        Key: `users/${userId}/metadata.json`,
-        Body: JSON.stringify(updated, null, 2),
-        ContentType: 'application/json',
-      }))
 
       return new Response(JSON.stringify(record), {
         headers: { 'Content-Type': 'application/json' },

@@ -1,15 +1,7 @@
 import { betterAuth } from 'better-auth'
-import Database from 'better-sqlite3'
-import { mkdir } from 'node:fs/promises'
-import { existsSync } from 'node:fs'
+import { getDb } from './db'
 
-// Ensure /uploads dir exists (Railway Volume mount)
-const DB_DIR = existsSync('/uploads') ? '/uploads' : '/tmp'
-const DB_PATH = `${DB_DIR}/packview.db`
-
-const db = new Database(DB_PATH)
-// Enable WAL mode for better concurrency
-db.pragma('journal_mode = WAL')
+const db = getDb()
 
 export const auth = betterAuth({
   database: {

@@ -1,6 +1,6 @@
 import { createAPIFileRoute } from '@tanstack/react-start/api'
-import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
 import { auth } from '../../lib/auth'
+import { getDb, type ModelRecord } from '../../lib/db'
 
 export interface UploadRecord {
   id: string
@@ -8,31 +8,6 @@ export interface UploadRecord {
   size: number
   uploadedAt: string
   path: string
-}
-
-function getS3() {
-  return new S3Client({
-    region: 'auto',
-    endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-    credentials: {
-      accessKeyId: process.env.R2_ACCESS_KEY_ID!,
-      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
-    },
-  })
-}
-
-export async function readMetadata(userId: string): Promise<UploadRecord[]> {
-  try {
-    const s3 = getS3()
-    const res = await s3.send(new GetObjectCommand({
-      Bucket: process.env.R2_BUCKET!,
-      Key: `users/${userId}/metadata.json`,
-    }))
-    const body = await res.Body?.transformToString()
-    return body ? JSON.parse(body) as UploadRecord[] : []
-  } catch {
-    return []
-  }
 }
 
 export const APIRoute = createAPIFileRoute('/api/history')({
@@ -44,7 +19,23 @@ export const APIRoute = createAPIFileRoute('/api/history')({
         headers: { 'Content-Type': 'application/json' },
       })
     }
-    const records = await readMetadata(session.user.id)
+    const db = getDb()
+    const rows = db.prepare(`
+      SELECT id, name, size, r2_key, uploaded_at
+      FROM models
+      WHERE user_id = ?
+      ORDER BY uploaded_at DESC
+      LIMIT 50
+    `).all(session.user.id) as ModelRecord[]
+
+    const records: UploadRecord[] = rows.map(r => ({
+      id: r.id,
+      name: r.name,
+      size: r.size,
+      uploadedAt: r.uploaded_at,
+      path: `/api/model/${r.r2_key.replace('models/', '')}`,
+    }))
+
     return new Response(JSON.stringify(records), {
       headers: { 'Content-Type': 'application/json' },
     })
