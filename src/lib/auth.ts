@@ -4,10 +4,7 @@ import { getDb } from './db'
 const db = getDb()
 
 export const auth = betterAuth({
-  database: {
-    type: 'sqlite',
-    db,
-  },
+  database: db,
   secret: process.env.BETTER_AUTH_SECRET || 'packview-dev-secret-change-in-prod',
   baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
   emailAndPassword: {
