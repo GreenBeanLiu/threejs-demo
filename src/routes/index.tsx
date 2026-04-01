@@ -22,12 +22,17 @@ const DEFAULT_SETTINGS: ViewerSettings = {
   lightIntensity: 1.2,
 }
 
-function LoadingOverlay() {
+function LoadingOverlay({ message = 'Loading model…' }: { message?: string }) {
   return (
-    <div className="absolute inset-0 flex items-center justify-center">
-      <div className="flex flex-col items-center gap-3">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--line)] border-t-[#56c6be]" />
-        <p className="text-sm text-[var(--sea-ink-soft)]">Loading model…</p>
+    <div className="absolute inset-0 z-[100] flex items-center justify-center bg-[rgba(15,15,20,0.5)] backdrop-blur-sm">
+      <div className="flex flex-col items-center gap-4 rounded-2xl bg-[var(--header-bg)] p-8 shadow-2xl border border-[var(--line)]">
+        <div className="relative">
+          <div className="h-12 w-12 animate-spin rounded-full border-2 border-[var(--line)] border-t-[#56c6be]" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="h-2 w-2 rounded-full bg-[#56c6be] animate-pulse" />
+          </div>
+        </div>
+        <p className="text-sm font-medium text-[var(--sea-ink)]">{message}</p>
       </div>
     </div>
   )
@@ -39,13 +44,15 @@ function ViewerPage() {
   const [modelInfo, setModelInfo] = useState<ModelInfo | null>(null)
   const [settings, setSettings] = useState<ViewerSettings>(DEFAULT_SETTINGS)
   const [loading, setLoading] = useState(false)
+  const [processing, setProcessing] = useState(false)
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
-  const handleFile = useCallback((url: string, name: string) => {
+  const handleFile = useCallback((url: string, name: string, isProcessing?: boolean) => {
     setModelUrl(prev => { if (prev) URL.revokeObjectURL(prev); return url })
     setFileName(name)
     setModelInfo(null)
     setLoading(true)
+    if (isProcessing !== undefined) setProcessing(isProcessing)
   }, [])
 
   const patchSettings = useCallback((patch: Partial<ViewerSettings>) => {
@@ -66,7 +73,12 @@ function ViewerPage() {
       {/* Inline header when model is loaded */}
       {modelUrl && (
         <div className="absolute top-0 left-0 right-0 z-40">
-          <Header fileName={fileName} onUpload={handleFile} hasModel={!!modelUrl} />
+          <Header
+            fileName={fileName}
+            onUpload={handleFile}
+            hasModel={!!modelUrl}
+            onProcessing={setProcessing}
+          />
         </div>
       )}
 
@@ -81,8 +93,9 @@ function ViewerPage() {
               Upload your packaging model to preview it in interactive 3D
             </p>
           </div>
-          <div className="h-64 w-full max-w-xl">
-            <DropZone onFile={handleFile} />
+          <div className="h-64 w-full max-w-xl relative">
+            <DropZone onFile={handleFile} onProcessing={setProcessing} />
+            {loading && <LoadingOverlay message={processing ? 'Processing and saving...' : 'Loading model...'} />}
           </div>
           <HistoryPanel onSelect={handleFile} />
           <div className="flex flex-wrap justify-center gap-6 text-sm text-[var(--sea-ink-soft)]">
@@ -120,7 +133,7 @@ function ViewerPage() {
               </Suspense>
             </Canvas>
 
-            {loading && <LoadingOverlay />}
+            {loading && <LoadingOverlay message={processing ? 'Processing and saving...' : 'Loading model...'} />}
 
             {/* Screenshot button */}
             <button

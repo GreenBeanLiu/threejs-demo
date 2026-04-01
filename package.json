@@ -7,13 +7,14 @@
   },
   "scripts": {
     "dev": "vite dev --port 3000",
-    "build": "npm rebuild better-sqlite3 --update-binary 2>/dev/null || true && vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1019.0",
     "@better-auth/kysely-adapter": "^1.5.6",
+    "@libsql/client": "^0.17.2",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
     "@tailwindcss/vite": "^4.1.18",

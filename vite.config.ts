@@ -15,9 +15,6 @@ const config = defineConfig({
     tanstackStart(),
     viteReact(),
   ],
-  ssr: {
-    external: ['better-sqlite3'],
-  },
 })
 
 export default config

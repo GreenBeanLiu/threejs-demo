@@ -52,12 +52,15 @@ export const APIRoute = createAPIFileRoute('/api/upload')({
         ContentType: ext === '.gltf' ? 'model/gltf+json' : 'model/gltf-binary',
       }))
 
-      // Insert into SQLite models table
+      // Insert into LibSQL models table
       const db = getDb()
-      db.prepare(`
-        INSERT INTO models (id, user_id, name, size, r2_key, uploaded_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run(id, userId, file.name, file.size, key, new Date().toISOString())
+      await db.execute({
+        sql: `
+          INSERT INTO models (id, user_id, name, size, r2_key, uploaded_at)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `,
+        args: [id, userId, file.name, file.size, key, new Date().toISOString()]
+      })
 
       const record = {
         id,

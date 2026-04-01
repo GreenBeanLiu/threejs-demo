@@ -20,13 +20,18 @@ export const APIRoute = createAPIFileRoute('/api/history')({
       })
     }
     const db = getDb()
-    const rows = db.prepare(`
-      SELECT id, name, size, r2_key, uploaded_at
-      FROM models
-      WHERE user_id = ?
-      ORDER BY uploaded_at DESC
-      LIMIT 50
-    `).all(session.user.id) as ModelRecord[]
+    const result = await db.execute({
+      sql: `
+        SELECT id, user_id, name, size, r2_key, uploaded_at
+        FROM models
+        WHERE user_id = ?
+        ORDER BY uploaded_at DESC
+        LIMIT 50
+      `,
+      args: [session.user.id]
+    })
+
+    const rows = result.rows as unknown as ModelRecord[]
 
     const records: UploadRecord[] = rows.map(r => ({
       id: r.id,

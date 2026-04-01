@@ -2,18 +2,34 @@ import { signOut, useSession } from '../lib/auth-client'
 
 interface HeaderProps {
   fileName?: string | null
-  onUpload?: (url: string, name: string) => void
+  onUpload?: (url: string, name: string, isProcessing?: boolean) => void
   hasModel?: boolean
+  onProcessing?: (isProcessing: boolean) => void
 }
 
-export default function Header({ fileName, onUpload, hasModel }: HeaderProps) {
+export default function Header({ fileName, onUpload, hasModel, onProcessing }: HeaderProps) {
   const { data: session } = useSession()
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
     if (!f || !onUpload) return
+
+    // Signal processing if callback exists
+    onProcessing?.(true)
+
     const url = URL.createObjectURL(f)
-    onUpload(url, f.name)
+    onUpload(url, f.name, true)
+
+    // Logic for uploading to server (reusing DropZone logic but in header)
+    try {
+      const fd = new FormData()
+      fd.append('file', f)
+      await fetch('/api/upload', { method: 'POST', body: fd })
+    } catch (err) {
+      console.error('Upload failed:', err)
+    } finally {
+      onProcessing?.(false)
+    }
   }
 
   const handleSignOut = async () => {

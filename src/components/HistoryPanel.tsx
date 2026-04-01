@@ -25,7 +25,7 @@ function timeAgo(isoString: string) {
 }
 
 interface HistoryPanelProps {
-  onSelect: (url: string, name: string) => void
+  onSelect: (url: string, name: string, isProcessing?: boolean) => void
 }
 
 export default function HistoryPanel({ onSelect }: HistoryPanelProps) {

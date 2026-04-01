@@ -1,22 +1,24 @@
-import Database from 'better-sqlite3'
+import { createClient, type Client } from '@libsql/client'
 import { existsSync } from 'node:fs'
 
 const DB_DIR = existsSync('/uploads') ? '/uploads' : '/tmp'
-const DB_PATH = `${DB_DIR}/packview.db`
+const DB_PATH = `file:${DB_DIR}/packview.db` // LibSQL requires 'file:' prefix for local paths
 
 // Singleton — reuse the same connection across the process
-let _db: Database.Database | null = null
+let _db: Client | null = null
 
-export function getDb(): Database.Database {
+export function getDb(): Client {
   if (_db) return _db
-  _db = new Database(DB_PATH)
-  _db.pragma('journal_mode = WAL')
-  migrate(_db)
+  _db = createClient({
+    url: DB_PATH,
+  })
+  // Initialize migrations (one-time setup for the process if needed)
+  migrate(_db).catch(err => console.error('Migration failed:', err))
   return _db
 }
 
-function migrate(db: Database.Database) {
-  db.exec(`
+async function migrate(db: Client) {
+  await db.executeMultiple(`
     CREATE TABLE IF NOT EXISTS models (
       id          TEXT PRIMARY KEY,
       user_id     TEXT NOT NULL,

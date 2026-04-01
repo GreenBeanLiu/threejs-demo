@@ -1,7 +1,8 @@
 import { useCallback, useState } from 'react'
 
 interface DropZoneProps {
-  onFile: (url: string, name: string) => void
+  onFile: (url: string, name: string, isProcessing?: boolean) => void
+  onProcessing?: (isProcessing: boolean) => void
 }
 
 async function uploadToServer(file: File): Promise<string | null> {
@@ -17,17 +18,23 @@ async function uploadToServer(file: File): Promise<string | null> {
   }
 }
 
-export default function DropZone({ onFile }: DropZoneProps) {
+export default function DropZone({ onFile, onProcessing }: DropZoneProps) {
   const [dragging, setDragging] = useState(false)
 
   const handleFile = useCallback(async (file: File) => {
     if (!file.name.match(/\.(glb|gltf)$/i)) return
+
+    // Signal that we are processing
+    onProcessing?.(true)
+
     // Use local object URL immediately for fast preview
     const localUrl = URL.createObjectURL(file)
-    onFile(localUrl, file.name)
-    // Upload in background for history persistence
-    uploadToServer(file)
-  }, [onFile])
+    onFile(localUrl, file.name, true)
+
+    // Upload and wait for completion to clear processing state
+    await uploadToServer(file)
+    onProcessing?.(false)
+  }, [onFile, onProcessing])
 
   const onDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
