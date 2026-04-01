@@ -9,7 +9,7 @@ export const auth = betterAuth({
     type: 'libsql',
   },
   secret: process.env.BETTER_AUTH_SECRET || 'packview-dev-secret-change-in-prod',
-  baseURL: process.env.BETTER_AUTH_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'),
+  baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false,
