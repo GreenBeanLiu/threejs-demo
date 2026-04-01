@@ -92,7 +92,15 @@ createServer(async (req, res) => {
     duplex: 'half',
   })
 
-  const response = await app.fetch(request)
+  let response
+  try {
+    response = await app.fetch(request)
+  } catch (err) {
+    console.error('SSR Fetch Error:', err)
+    res.writeHead(500, { 'Content-Type': 'text/plain' })
+    res.end(`Internal Server Error: ${err.message}`)
+    return
+  }
 
   res.statusCode = response.status
   for (const [key, val] of response.headers.entries()) {
