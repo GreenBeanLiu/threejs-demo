@@ -29,18 +29,22 @@ export function getDb(): Client {
 }
 
 async function migrate(db: Client) {
-  await db.executeMultiple(`
-    CREATE TABLE IF NOT EXISTS models (
-      id          TEXT PRIMARY KEY,
-      user_id     TEXT NOT NULL,
-      name        TEXT NOT NULL,
-      size        INTEGER NOT NULL,
-      r2_key      TEXT NOT NULL,
-      uploaded_at TEXT NOT NULL DEFAULT (datetime('now'))
-    );
-    CREATE INDEX IF NOT EXISTS idx_models_user ON models(user_id, uploaded_at DESC);
-  `)
-  console.log('>>> Database migrations completed')
+  try {
+    await db.executeMultiple(`
+      CREATE TABLE IF NOT EXISTS models (
+        id          TEXT PRIMARY KEY,
+        user_id     TEXT NOT NULL,
+        name        TEXT NOT NULL,
+        size        INTEGER NOT NULL,
+        r2_key      TEXT NOT NULL,
+        uploaded_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_models_user ON models(user_id, uploaded_at DESC);
+    `)
+    console.log('>>> Database migrations completed')
+  } catch (err) {
+    console.error('>>> Migration execution failed:', err)
+  }
 }
 
 export interface ModelRecord {
