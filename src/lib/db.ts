@@ -1,7 +1,7 @@
 import { createClient, type Client } from '@libsql/client'
 import { existsSync } from 'node:fs'
 
-const DB_DIR = existsSync('/uploads') ? '/uploads' : '/tmp'
+const DB_DIR = existsSync('/uploads') ? '/uploads' : (process.env.NODE_ENV === 'production' ? '/tmp' : './')
 const DB_PATH = `file:${DB_DIR}/packview.db` // LibSQL requires 'file:' prefix for local paths
 
 // Singleton — reuse the same connection across the process

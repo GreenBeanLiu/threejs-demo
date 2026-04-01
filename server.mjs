@@ -5,7 +5,11 @@ import { fileURLToPath } from 'node:url'
 import app from './dist/server/server.js'
 
 // Ensure upload directories exist
-await mkdir('/uploads/models', { recursive: true }).catch(() => {})
+if (process.env.NODE_ENV === 'production') {
+  await mkdir('/uploads/models', { recursive: true }).catch(() => {})
+} else {
+  await mkdir('./models', { recursive: true }).catch(() => {})
+}
 
 const port = process.env.PORT || 3000
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
