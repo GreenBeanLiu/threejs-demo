@@ -1,19 +1,30 @@
 import { createClient, type Client } from '@libsql/client'
 import { existsSync } from 'node:fs'
 
-const DB_DIR = existsSync('/uploads') ? '/uploads' : (process.env.NODE_ENV === 'production' ? '/tmp' : './')
-const DB_PATH = `file:${DB_DIR}/packview.db` // LibSQL requires 'file:' prefix for local paths
+const getDbPath = () => {
+  // 1. Check for Railway volume
+  if (existsSync('/uploads')) return 'file:/uploads/packview.db'
+  // 2. Production fallback to /tmp
+  if (process.env.NODE_ENV === 'production') return 'file:/tmp/packview.db'
+  // 3. Local development
+  return 'file:packview.db'
+}
 
-// Singleton — reuse the same connection across the process
 let _db: Client | null = null
 
 export function getDb(): Client {
   if (_db) return _db
-  _db = createClient({
-    url: DB_PATH,
+
+  const url = getDbPath()
+  console.log(`>>> Initializing LibSQL client at: ${url}`)
+
+  _db = createClient({ url })
+
+  // Run migrations in background
+  migrate(_db).catch(err => {
+    console.error('>>> Migration failed:', err)
   })
-  // Initialize migrations (one-time setup for the process if needed)
-  migrate(_db).catch(err => console.error('Migration failed:', err))
+
   return _db
 }
 
@@ -29,6 +40,7 @@ async function migrate(db: Client) {
     );
     CREATE INDEX IF NOT EXISTS idx_models_user ON models(user_id, uploaded_at DESC);
   `)
+  console.log('>>> Database migrations completed')
 }
 
 export interface ModelRecord {

@@ -1,8 +1,19 @@
+console.log('>>> Server starting...')
 import { createServer } from 'node:http'
 import { readFile, stat, mkdir } from 'node:fs/promises'
 import { join, extname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+
+console.log('>>> Importing app bundle...')
 import app from './dist/server/server.js'
+console.log('>>> App bundle imported successfully')
+
+const port = process.env.PORT || 3000
+const __dirname = fileURLToPath(new URL('.', import.meta.url))
+const clientDir = join(__dirname, 'dist', 'client')
+
+// Health check and simple response test
+const IS_HEALTHY = true
 
 // Ensure upload directories exist
 if (process.env.NODE_ENV === 'production') {
@@ -56,6 +67,13 @@ async function serveStatic(req, res) {
 }
 
 createServer(async (req, res) => {
+  // Quick health check
+  if (req.url === '/healthz') {
+    res.writeHead(200, { 'Content-Type': 'text/plain' })
+    res.end('OK')
+    return
+  }
+
   // Serve static files first
   if (req.method === 'GET' || req.method === 'HEAD') {
     const served = await serveStatic(req, res)

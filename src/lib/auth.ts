@@ -7,6 +7,7 @@ export const auth = betterAuth({
   database: {
     db,
     type: 'libsql',
+    // Ensure table creation is handled or at least doesn't crash on start
   },
   secret: process.env.BETTER_AUTH_SECRET || 'packview-dev-secret-change-in-prod',
   baseURL: process.env.BETTER_AUTH_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'),
