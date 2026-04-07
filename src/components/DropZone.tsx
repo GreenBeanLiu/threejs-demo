@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 interface DropZoneProps {
   onFile: (url: string, name: string, isProcessing?: boolean) => void
@@ -41,10 +41,21 @@ async function uploadToServer(file: File): Promise<{ path: string } | { error: s
 export default function DropZone({ onFile, onProcessing }: DropZoneProps) {
   const [dragging, setDragging] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
+
+  useEffect(() => {
+    if (!successMessage) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => setSuccessMessage(''), 2500)
+    return () => window.clearTimeout(timeoutId)
+  }, [successMessage])
 
   const handleFile = useCallback(
     async (file: File) => {
       setErrorMessage('')
+      setSuccessMessage('')
 
       if (!isSupportedModelFile(file)) {
         setErrorMessage('Only GLB and GLTF files are supported.')
@@ -70,6 +81,8 @@ export default function DropZone({ onFile, onProcessing }: DropZoneProps) {
 
       if ('error' in uploadResult) {
         setErrorMessage(uploadResult.error)
+      } else {
+        setSuccessMessage('Model uploaded successfully.')
       }
 
       onProcessing?.(false)
@@ -128,6 +141,12 @@ export default function DropZone({ onFile, onProcessing }: DropZoneProps) {
       {errorMessage ? (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {errorMessage}
+        </div>
+      ) : null}
+
+      {successMessage ? (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          {successMessage}
         </div>
       ) : null}
     </div>
