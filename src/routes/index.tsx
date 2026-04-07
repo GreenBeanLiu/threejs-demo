@@ -10,6 +10,7 @@ import ModelViewer, {
   type ViewerCommandState,
   type ViewerSettings,
 } from '../components/ModelViewer'
+import ViewerErrorBoundary from '../components/ViewerErrorBoundary'
 
 export const Route = createFileRoute('/')({ component: ViewerPage })
 
@@ -160,12 +161,14 @@ function ViewerPage() {
               onCreated={() => setLoading(false)}
             >
               <Suspense fallback={null}>
-                <ModelViewer
-                  url={modelUrl}
-                  settings={settings}
-                  onInfo={setModelInfo}
-                  commands={viewerCommands}
-                />
+                <ViewerErrorBoundary modelUrl={modelUrl} onError={setViewerError}>
+                  <ModelViewer
+                    url={modelUrl}
+                    settings={settings}
+                    onInfo={setModelInfo}
+                    commands={viewerCommands}
+                  />
+                </ViewerErrorBoundary>
               </Suspense>
             </Canvas>
 
