@@ -8,6 +8,7 @@ import HistoryPanel from '../components/HistoryPanel'
 import ModelViewer, {
   type ModelInfo,
   type ViewerCommandState,
+  type ViewerProgressState,
   type ViewerSettings,
 } from '../components/ModelViewer'
 import ViewerErrorBoundary from '../components/ViewerErrorBoundary'
@@ -26,17 +27,63 @@ const DEFAULT_SETTINGS: ViewerSettings = {
   lightIntensity: 1.2,
 }
 
-function LoadingOverlay({ message = 'Loading model…' }: { message?: string }) {
+function getLoadingMessage(params: {
+  processing: boolean
+  progress: ViewerProgressState | null
+}) {
+  if (params.processing) {
+    return 'Uploading and saving model…'
+  }
+
+  if (!params.progress) {
+    return 'Loading model…'
+  }
+
+  if (params.progress.active) {
+    if (params.progress.total > 0) {
+      return `Loading model… ${Math.round(params.progress.progress)}%`
+    }
+
+    return 'Loading model assets…'
+  }
+
+  return 'Preparing viewer…'
+}
+
+function LoadingOverlay({
+  message = 'Loading model…',
+  progress,
+}: {
+  message?: string
+  progress?: ViewerProgressState | null
+}) {
   return (
     <div className="absolute inset-0 z-[100] flex items-center justify-center bg-[rgba(15,15,20,0.5)] backdrop-blur-sm">
-      <div className="flex flex-col items-center gap-4 rounded-2xl border border-[var(--line)] bg-[var(--header-bg)] p-8 shadow-2xl">
+      <div className="flex min-w-[280px] flex-col items-center gap-4 rounded-2xl border border-[var(--line)] bg-[var(--header-bg)] p-8 shadow-2xl">
         <div className="relative">
           <div className="h-12 w-12 animate-spin rounded-full border-2 border-[var(--line)] border-t-[#56c6be]" />
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="h-2 w-2 animate-pulse rounded-full bg-[#56c6be]" />
           </div>
         </div>
-        <p className="text-sm font-medium text-[var(--sea-ink)]">{message}</p>
+        <div className="w-full text-center">
+          <p className="text-sm font-medium text-[var(--sea-ink)]">{message}</p>
+          {progress?.active ? (
+            <>
+              <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-[var(--line)]">
+                <div
+                  className="h-full rounded-full bg-[#56c6be] transition-all"
+                  style={{ width: `${Math.max(6, Math.min(100, progress.progress || 0))}%` }}
+                />
+              </div>
+              <p className="mt-2 text-xs text-[var(--sea-ink-soft)]">
+                {progress.total > 0
+                  ? `${progress.loaded}/${progress.total} assets`
+                  : 'Fetching model assets'}
+              </p>
+            </>
+          ) : null}
+        </div>
       </div>
     </div>
   )
@@ -53,6 +100,7 @@ function ViewerPage() {
   const [fitVersion, setFitVersion] = useState(0)
   const [resetVersion, setResetVersion] = useState(0)
   const [viewerError, setViewerError] = useState('')
+  const [viewerProgress, setViewerProgress] = useState<ViewerProgressState | null>(null)
   const [screenshotMessage, setScreenshotMessage] = useState('')
   const [screenshotError, setScreenshotError] = useState('')
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -84,6 +132,7 @@ function ViewerPage() {
     setFileName(name)
     setModelInfo(null)
     setViewerError('')
+    setViewerProgress(null)
     setScreenshotMessage('')
     setScreenshotError('')
     setLoading(true)
@@ -125,10 +174,22 @@ function ViewerPage() {
     setResetVersion((value) => value + 1)
   }, [])
 
+  const handleViewerProgress = useCallback((progress: ViewerProgressState) => {
+    setViewerProgress(progress)
+    if (!progress.active && progress.progress >= 100) {
+      setLoading(false)
+    }
+  }, [])
+
   const viewerCommands = useMemo<ViewerCommandState>(
     () => ({ fitVersion, resetVersion }),
     [fitVersion, resetVersion],
   )
+
+  const loadingMessage = getLoadingMessage({
+    processing,
+    progress: viewerProgress,
+  })
 
   return (
     <div className="flex h-[calc(100vh-57px)] flex-col">
@@ -160,11 +221,7 @@ function ViewerPage() {
               onProcessing={setProcessing}
               onUploadComplete={refreshHistory}
             />
-            {loading && (
-              <LoadingOverlay
-                message={processing ? 'Processing and saving...' : 'Loading model...'}
-              />
-            )}
+            {loading && <LoadingOverlay message={loadingMessage} progress={viewerProgress} />}
           </div>
           <HistoryPanel onSelect={handleFile} refreshKey={historyRefreshKey} />
           <div className="flex flex-wrap justify-center gap-6 text-sm text-[var(--sea-ink-soft)]">
@@ -198,16 +255,13 @@ function ViewerPage() {
                     settings={settings}
                     onInfo={setModelInfo}
                     commands={viewerCommands}
+                    onProgress={handleViewerProgress}
                   />
                 </ViewerErrorBoundary>
               </Suspense>
             </Canvas>
 
-            {loading && (
-              <LoadingOverlay
-                message={processing ? 'Processing and saving...' : 'Loading model...'}
-              />
-            )}
+            {loading && <LoadingOverlay message={loadingMessage} progress={viewerProgress} />}
 
             {viewerError ? (
               <div className="absolute left-4 top-4 z-30 max-w-md rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-lg">

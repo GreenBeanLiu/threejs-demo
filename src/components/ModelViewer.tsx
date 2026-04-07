@@ -7,6 +7,7 @@ import {
   OrbitControls,
   useBounds,
   useGLTF,
+  useProgress,
 } from '@react-three/drei'
 import * as THREE from 'three'
 
@@ -33,6 +34,14 @@ export interface ViewerSettings {
 export interface ViewerCommandState {
   fitVersion: number
   resetVersion: number
+}
+
+export interface ViewerProgressState {
+  active: boolean
+  progress: number
+  loaded: number
+  total: number
+  item: string
 }
 
 function Model({
@@ -147,18 +156,31 @@ export default function ModelViewer({
   settings,
   onInfo,
   commands,
+  onProgress,
 }: {
   url: string
   settings: ViewerSettings
   onInfo: (info: ModelInfo) => void
   commands?: ViewerCommandState
+  onProgress?: (state: ViewerProgressState) => void
 }) {
   const { gl } = useThree()
   const [bottomY, setBottomY] = useState<number>(-0.01)
+  const progress = useProgress()
 
   useEffect(() => {
     gl.toneMappingExposure = settings.exposure
   }, [gl, settings.exposure])
+
+  useEffect(() => {
+    onProgress?.({
+      active: progress.active,
+      progress: progress.progress,
+      loaded: progress.loaded,
+      total: progress.total,
+      item: progress.item,
+    })
+  }, [onProgress, progress.active, progress.progress, progress.loaded, progress.total, progress.item])
 
   return (
     <>
