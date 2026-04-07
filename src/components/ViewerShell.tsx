@@ -1,6 +1,4 @@
-import { Canvas } from '@react-three/fiber'
 import { lazy, Suspense } from 'react'
-import ViewerErrorBoundary from './ViewerErrorBoundary'
 import type {
   ModelInfo,
   ViewerCommandState,
@@ -9,7 +7,7 @@ import type {
 } from './ModelViewer'
 
 const ControlPanel = lazy(() => import('./ControlPanel'))
-const ModelViewer = lazy(() => import('./ModelViewer'))
+const ViewerCanvas = lazy(() => import('./ViewerCanvas'))
 
 interface ViewerShellProps {
   canvasRef: React.RefObject<HTMLCanvasElement | null>
@@ -45,29 +43,18 @@ export default function ViewerShell({
   return (
     <>
       <div className="relative flex-1 overflow-hidden">
-        <Canvas
-          ref={canvasRef}
-          camera={{ position: [0, 1.5, 4], fov: 45 }}
-          gl={{ antialias: true, toneMapping: 4, preserveDrawingBuffer: true }}
-          shadows
-          style={{ width: '100%', height: '100%' }}
-          onCreated={onCreated}
-        >
-          <Suspense fallback={null}>
-            <ViewerErrorBoundary modelUrl={effectiveModelUrl} onError={onViewerError}>
-              {effectiveModelUrl ? (
-                <ModelViewer
-                  key={effectiveModelUrl}
-                  url={effectiveModelUrl}
-                  settings={settings}
-                  onInfo={onModelInfo}
-                  commands={viewerCommands}
-                  onProgress={onViewerProgress}
-                />
-              ) : null}
-            </ViewerErrorBoundary>
-          </Suspense>
-        </Canvas>
+        <Suspense fallback={<div className="flex h-full items-center justify-center text-sm text-[var(--sea-ink-soft)]">Loading canvas…</div>}>
+          <ViewerCanvas
+            canvasRef={canvasRef}
+            effectiveModelUrl={effectiveModelUrl}
+            settings={settings}
+            viewerCommands={viewerCommands}
+            onViewerError={onViewerError}
+            onViewerProgress={onViewerProgress}
+            onModelInfo={onModelInfo}
+            onCreated={onCreated}
+          />
+        </Suspense>
       </div>
 
       <div className="w-60 shrink-0 overflow-y-auto border-l border-[var(--line)] bg-[var(--header-bg)] p-3">
