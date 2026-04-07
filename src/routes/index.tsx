@@ -99,6 +99,7 @@ function ViewerPage() {
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0)
   const [fitVersion, setFitVersion] = useState(0)
   const [resetVersion, setResetVersion] = useState(0)
+  const [retryVersion, setRetryVersion] = useState(0)
   const [viewerError, setViewerError] = useState('')
   const [viewerProgress, setViewerProgress] = useState<ViewerProgressState | null>(null)
   const [screenshotMessage, setScreenshotMessage] = useState('')
@@ -122,6 +123,23 @@ function ViewerPage() {
     setHistoryRefreshKey((value) => value + 1)
   }, [])
 
+  const resetToLanding = useCallback(() => {
+    setModelUrl((prev) => {
+      if (prev?.startsWith('blob:')) {
+        URL.revokeObjectURL(prev)
+      }
+      return null
+    })
+    setFileName(null)
+    setModelInfo(null)
+    setViewerError('')
+    setViewerProgress(null)
+    setScreenshotMessage('')
+    setScreenshotError('')
+    setLoading(false)
+    setProcessing(false)
+  }, [])
+
   const handleFile = useCallback((url: string, name: string, isProcessing?: boolean) => {
     setModelUrl((prev) => {
       if (prev?.startsWith('blob:')) {
@@ -135,6 +153,7 @@ function ViewerPage() {
     setViewerProgress(null)
     setScreenshotMessage('')
     setScreenshotError('')
+    setRetryVersion(0)
     setLoading(true)
     if (isProcessing !== undefined) setProcessing(isProcessing)
   }, [])
@@ -174,6 +193,17 @@ function ViewerPage() {
     setResetVersion((value) => value + 1)
   }, [])
 
+  const handleRetryModelLoad = useCallback(() => {
+    if (!modelUrl) {
+      return
+    }
+
+    setViewerError('')
+    setViewerProgress(null)
+    setLoading(true)
+    setRetryVersion((value) => value + 1)
+  }, [modelUrl])
+
   const handleViewerProgress = useCallback((progress: ViewerProgressState) => {
     setViewerProgress(progress)
     if (!progress.active && progress.progress >= 100) {
@@ -190,6 +220,8 @@ function ViewerPage() {
     processing,
     progress: viewerProgress,
   })
+
+  const effectiveModelUrl = modelUrl ? `${modelUrl}${modelUrl.includes('?') ? '&' : '?'}rv=${retryVersion}` : null
 
   return (
     <div className="flex h-[calc(100vh-57px)] flex-col">
@@ -249,14 +281,17 @@ function ViewerPage() {
               onCreated={() => setLoading(false)}
             >
               <Suspense fallback={null}>
-                <ViewerErrorBoundary modelUrl={modelUrl} onError={setViewerError}>
-                  <ModelViewer
-                    url={modelUrl}
-                    settings={settings}
-                    onInfo={setModelInfo}
-                    commands={viewerCommands}
-                    onProgress={handleViewerProgress}
-                  />
+                <ViewerErrorBoundary modelUrl={effectiveModelUrl} onError={setViewerError}>
+                  {effectiveModelUrl ? (
+                    <ModelViewer
+                      key={effectiveModelUrl}
+                      url={effectiveModelUrl}
+                      settings={settings}
+                      onInfo={setModelInfo}
+                      commands={viewerCommands}
+                      onProgress={handleViewerProgress}
+                    />
+                  ) : null}
                 </ViewerErrorBoundary>
               </Suspense>
             </Canvas>
@@ -265,7 +300,23 @@ function ViewerPage() {
 
             {viewerError ? (
               <div className="absolute left-4 top-4 z-30 max-w-md rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-lg">
-                {viewerError}
+                <p className="font-medium">{viewerError}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={handleRetryModelLoad}
+                    className="rounded-full border border-red-300 px-3 py-1 text-xs font-medium transition hover:bg-red-100"
+                  >
+                    Retry load
+                  </button>
+                  <button
+                    type="button"
+                    onClick={resetToLanding}
+                    className="rounded-full border border-[var(--chip-line)] bg-white px-3 py-1 text-xs font-medium text-[var(--sea-ink)] transition hover:bg-[var(--chip-bg)]"
+                  >
+                    Back to upload
+                  </button>
+                </div>
               </div>
             ) : null}
 
