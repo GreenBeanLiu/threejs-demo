@@ -15,6 +15,9 @@ const config = defineConfig({
     tanstackStart(),
     viteReact(),
   ],
+  build: {
+    chunkSizeWarningLimit: 1200,
+  },
 })
 
 export default config
