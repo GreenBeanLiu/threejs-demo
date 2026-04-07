@@ -1,30 +1,18 @@
-console.log('>>> Server starting...')
 import { createServer } from 'node:http'
-import { readFile, stat, mkdir } from 'node:fs/promises'
-import { join, extname } from 'node:path'
+import { mkdir, readFile, stat } from 'node:fs/promises'
+import { extname, join, normalize } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-console.log('>>> Importing app bundle...')
 import app from './dist/server/server.js'
-console.log('>>> App bundle imported successfully')
 
-const port = process.env.PORT || 3000
+const port = Number(process.env.PORT || 3000)
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const clientDir = join(__dirname, 'dist', 'client')
+const uploadDir = process.env.NODE_ENV === 'production' ? '/uploads/models' : './models'
 
-// Health check and simple response test
-const IS_HEALTHY = true
-
-// Ensure upload directories exist
-if (process.env.NODE_ENV === 'production') {
-  await mkdir('/uploads/models', { recursive: true }).catch(() => {})
-} else {
-  await mkdir('./models', { recursive: true }).catch(() => {})
-}
-
-const port = process.env.PORT || 3000
-const __dirname = fileURLToPath(new URL('.', import.meta.url))
-const clientDir = join(__dirname, 'dist', 'client')
+await mkdir(uploadDir, { recursive: true }).catch((error) => {
+  console.error('Failed to ensure upload directory exists:', error)
+})
 
 const MIME = {
   '.js': 'application/javascript',
@@ -33,6 +21,7 @@ const MIME = {
   '.html': 'text/html',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
   '.woff': 'font/woff',
@@ -42,18 +31,31 @@ const MIME = {
   '.gltf': 'model/gltf+json',
 }
 
+function resolveStaticPath(urlPath) {
+  const safePath = normalize(urlPath).replace(/^([.][.][/\\])+/, '')
+  return join(clientDir, safePath)
+}
+
 async function serveStatic(req, res) {
   try {
     const urlPath = new URL(req.url, 'http://localhost').pathname
-    const filePath = join(clientDir, urlPath)
-    // Security: ensure path is within clientDir
-    if (!filePath.startsWith(clientDir)) return false
-    const s = await stat(filePath)
-    if (!s.isFile()) return false
+    const filePath = resolveStaticPath(urlPath)
+
+    if (!filePath.startsWith(clientDir)) {
+      return false
+    }
+
+    const fileStat = await stat(filePath)
+
+    if (!fileStat.isFile()) {
+      return false
+    }
+
     const ext = extname(filePath)
     const mime = MIME[ext] || 'application/octet-stream'
     const data = await readFile(filePath)
     const isImmutable = urlPath.startsWith('/assets/')
+
     res.writeHead(200, {
       'Content-Type': mime,
       'Content-Length': data.length,
@@ -67,17 +69,18 @@ async function serveStatic(req, res) {
 }
 
 createServer(async (req, res) => {
-  // Quick health check
   if (req.url === '/healthz') {
     res.writeHead(200, { 'Content-Type': 'text/plain' })
     res.end('OK')
     return
   }
 
-  // Serve static files first
   if (req.method === 'GET' || req.method === 'HEAD') {
     const served = await serveStatic(req, res)
-    if (served) return
+
+    if (served) {
+      return
+    }
   }
 
   const protocol = req.socket.encrypted ? 'https' : 'http'
@@ -85,48 +88,64 @@ createServer(async (req, res) => {
   const url = new URL(req.url, `${protocol}://${host}`)
 
   const headers = new Headers()
-  for (const [key, val] of Object.entries(req.headers)) {
-    if (val) headers.set(key, Array.isArray(val) ? val.join(', ') : val)
+  for (const [key, value] of Object.entries(req.headers)) {
+    if (value) {
+      headers.set(key, Array.isArray(value) ? value.join(', ') : value)
+    }
   }
 
-  const MAX_BODY = 100 * 1024 * 1024 // 100 MB
-  const body = ['GET', 'HEAD'].includes(req.method) ? undefined : await new Promise((resolve, reject) => {
-    const chunks = []
-    let size = 0
-    req.on('data', c => {
-      size += c.length
-      if (size > MAX_BODY) { req.destroy(); reject(new Error('Payload too large')); return }
-      chunks.push(c)
-    })
-    req.on('end', () => resolve(Buffer.concat(chunks)))
-    req.on('error', reject)
-  }).catch(() => {
-    res.writeHead(413, { 'Content-Type': 'text/plain' })
-    res.end('Payload too large')
-    return null
-  })
-  if (body === null) return
+  const maxBodyBytes = 100 * 1024 * 1024
+  const body = ['GET', 'HEAD'].includes(req.method)
+    ? undefined
+    : await new Promise((resolve, reject) => {
+        const chunks = []
+        let size = 0
+
+        req.on('data', (chunk) => {
+          size += chunk.length
+          if (size > maxBodyBytes) {
+            req.destroy()
+            reject(new Error('Payload too large'))
+            return
+          }
+
+          chunks.push(chunk)
+        })
+        req.on('end', () => resolve(Buffer.concat(chunks)))
+        req.on('error', reject)
+      }).catch((error) => {
+        const status = error instanceof Error && error.message === 'Payload too large' ? 413 : 400
+        res.writeHead(status, { 'Content-Type': 'text/plain' })
+        res.end(status === 413 ? 'Payload too large' : 'Failed to read request body')
+        return null
+      })
+
+  if (body === null) {
+    return
+  }
 
   const request = new Request(url, {
     method: req.method,
     headers,
     body,
-    duplex: 'half',
+    duplex: body === undefined ? undefined : 'half',
   })
 
   let response
   try {
     response = await app.fetch(request)
-  } catch (err) {
-    console.error('SSR Fetch Error:', err)
+  } catch (error) {
+    console.error('SSR fetch error:', error)
     res.writeHead(500, { 'Content-Type': 'text/plain' })
-    res.end(`Internal Server Error: ${err.message}`)
+    res.end(
+      `Internal Server Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    )
     return
   }
 
   res.statusCode = response.status
-  for (const [key, val] of response.headers.entries()) {
-    res.setHeader(key, val)
+  for (const [key, value] of response.headers.entries()) {
+    res.setHeader(key, value)
   }
 
   if (response.body) {
@@ -137,6 +156,7 @@ createServer(async (req, res) => {
       res.write(value)
     }
   }
+
   res.end()
 }).listen(port, () => {
   console.log(`Server listening on port ${port}`)
