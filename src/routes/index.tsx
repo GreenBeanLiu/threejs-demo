@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 import { Canvas } from '@react-three/fiber'
 import { Suspense, useCallback, useRef, useState } from 'react'
 import ModelViewer, { type ModelInfo, type ViewerSettings } from '../components/ModelViewer'
@@ -6,7 +6,6 @@ import ControlPanel from '../components/ControlPanel'
 import DropZone from '../components/DropZone'
 import Header from '../components/Header'
 import HistoryPanel from '../components/HistoryPanel'
-import { getSession } from '../lib/auth-client'
 
 export const Route = createFileRoute('/')({ component: ViewerPage })
 
@@ -25,11 +24,11 @@ const DEFAULT_SETTINGS: ViewerSettings = {
 function LoadingOverlay({ message = 'Loading model…' }: { message?: string }) {
   return (
     <div className="absolute inset-0 z-[100] flex items-center justify-center bg-[rgba(15,15,20,0.5)] backdrop-blur-sm">
-      <div className="flex flex-col items-center gap-4 rounded-2xl bg-[var(--header-bg)] p-8 shadow-2xl border border-[var(--line)]">
+      <div className="flex flex-col items-center gap-4 rounded-2xl border border-[var(--line)] bg-[var(--header-bg)] p-8 shadow-2xl">
         <div className="relative">
           <div className="h-12 w-12 animate-spin rounded-full border-2 border-[var(--line)] border-t-[#56c6be]" />
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="h-2 w-2 rounded-full bg-[#56c6be] animate-pulse" />
+            <div className="h-2 w-2 animate-pulse rounded-full bg-[#56c6be]" />
           </div>
         </div>
         <p className="text-sm font-medium text-[var(--sea-ink)]">{message}</p>
@@ -45,10 +44,20 @@ function ViewerPage() {
   const [settings, setSettings] = useState<ViewerSettings>(DEFAULT_SETTINGS)
   const [loading, setLoading] = useState(false)
   const [processing, setProcessing] = useState(false)
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0)
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
+  const refreshHistory = useCallback(() => {
+    setHistoryRefreshKey((value) => value + 1)
+  }, [])
+
   const handleFile = useCallback((url: string, name: string, isProcessing?: boolean) => {
-    setModelUrl(prev => { if (prev) URL.revokeObjectURL(prev); return url })
+    setModelUrl((prev) => {
+      if (prev?.startsWith('blob:')) {
+        URL.revokeObjectURL(prev)
+      }
+      return url
+    })
     setFileName(name)
     setModelInfo(null)
     setLoading(true)
@@ -56,7 +65,7 @@ function ViewerPage() {
   }, [])
 
   const patchSettings = useCallback((patch: Partial<ViewerSettings>) => {
-    setSettings(s => ({ ...s, ...patch }))
+    setSettings((value) => ({ ...value, ...patch }))
   }, [])
 
   const handleScreenshot = useCallback(() => {
@@ -70,20 +79,19 @@ function ViewerPage() {
 
   return (
     <div className="flex h-[calc(100vh-57px)] flex-col">
-      {/* Inline header when model is loaded */}
       {modelUrl && (
-        <div className="absolute top-0 left-0 right-0 z-40">
+        <div className="absolute left-0 right-0 top-0 z-40">
           <Header
             fileName={fileName}
             onUpload={handleFile}
             hasModel={!!modelUrl}
             onProcessing={setProcessing}
+            onUploadComplete={refreshHistory}
           />
         </div>
       )}
 
       {!modelUrl ? (
-        /* Landing / drop zone */
         <div className="flex flex-1 flex-col items-center justify-center gap-8 p-6">
           <div className="text-center">
             <h1 className="mb-2 text-4xl font-bold tracking-tight text-[var(--sea-ink)]">
@@ -93,11 +101,19 @@ function ViewerPage() {
               Upload your packaging model to preview it in interactive 3D
             </p>
           </div>
-          <div className="h-64 w-full max-w-xl relative">
-            <DropZone onFile={handleFile} onProcessing={setProcessing} />
-            {loading && <LoadingOverlay message={processing ? 'Processing and saving...' : 'Loading model...'} />}
+          <div className="relative h-64 w-full max-w-xl">
+            <DropZone
+              onFile={handleFile}
+              onProcessing={setProcessing}
+              onUploadComplete={refreshHistory}
+            />
+            {loading && (
+              <LoadingOverlay
+                message={processing ? 'Processing and saving...' : 'Loading model...'}
+              />
+            )}
           </div>
-          <HistoryPanel onSelect={handleFile} />
+          <HistoryPanel onSelect={handleFile} refreshKey={historyRefreshKey} />
           <div className="flex flex-wrap justify-center gap-6 text-sm text-[var(--sea-ink-soft)]">
             {[
               ['360° View', 'Rotate and inspect from any angle'],
@@ -112,9 +128,7 @@ function ViewerPage() {
           </div>
         </div>
       ) : (
-        /* Viewer */
         <div className="flex flex-1 overflow-hidden pt-14">
-          {/* Canvas */}
           <div className="relative flex-1 overflow-hidden">
             <Canvas
               ref={canvasRef}
@@ -125,17 +139,16 @@ function ViewerPage() {
               onCreated={() => setLoading(false)}
             >
               <Suspense fallback={null}>
-                <ModelViewer
-                  url={modelUrl}
-                  settings={settings}
-                  onInfo={setModelInfo}
-                />
+                <ModelViewer url={modelUrl} settings={settings} onInfo={setModelInfo} />
               </Suspense>
             </Canvas>
 
-            {loading && <LoadingOverlay message={processing ? 'Processing and saving...' : 'Loading model...'} />}
+            {loading && (
+              <LoadingOverlay
+                message={processing ? 'Processing and saving...' : 'Loading model...'}
+              />
+            )}
 
-            {/* Screenshot button */}
             <button
               onClick={handleScreenshot}
               title="Save screenshot"
@@ -148,7 +161,6 @@ function ViewerPage() {
             </button>
           </div>
 
-          {/* Control panel */}
           <div className="w-60 shrink-0 overflow-y-auto border-l border-[var(--line)] bg-[var(--header-bg)] p-3">
             <ControlPanel
               settings={settings}

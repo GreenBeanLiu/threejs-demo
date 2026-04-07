@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 export interface UploadRecord {
   id: string
@@ -26,40 +26,102 @@ function timeAgo(isoString: string) {
 
 interface HistoryPanelProps {
   onSelect: (url: string, name: string, isProcessing?: boolean) => void
+  refreshKey?: number
 }
 
-export default function HistoryPanel({ onSelect }: HistoryPanelProps) {
+export default function HistoryPanel({ onSelect, refreshKey = 0 }: HistoryPanelProps) {
   const [records, setRecords] = useState<UploadRecord[]>([])
   const [loading, setLoading] = useState(true)
+  const [errorMessage, setErrorMessage] = useState('')
 
-  useEffect(() => {
+  const loadHistory = useCallback(() => {
+    setLoading(true)
+    setErrorMessage('')
+
     fetch('/api/history')
-      .then(r => r.json())
-      .then((data: UploadRecord[]) => { setRecords(data); setLoading(false) })
-      .catch(() => setLoading(false))
+      .then(async (response) => {
+        const data = (await response.json().catch(() => null)) as
+          | UploadRecord[]
+          | { error?: string }
+          | null
+
+        if (!response.ok) {
+          throw new Error(
+            data && !Array.isArray(data) && data.error
+              ? data.error
+              : `Failed to load history (${response.status})`,
+          )
+        }
+
+        setRecords(Array.isArray(data) ? data : [])
+        setLoading(false)
+      })
+      .catch((error) => {
+        setLoading(false)
+        setErrorMessage(error instanceof Error ? error.message : 'Failed to load history')
+      })
   }, [])
 
-  if (loading) return null
+  useEffect(() => {
+    loadHistory()
+  }, [loadHistory, refreshKey])
+
+  if (loading) {
+    return (
+      <div className="w-full max-w-xl rounded-2xl border border-[var(--line)] bg-[var(--chip-bg)] px-4 py-3 text-sm text-[var(--sea-ink-soft)]">
+        Loading recent models…
+      </div>
+    )
+  }
+
+  if (errorMessage) {
+    return (
+      <div className="w-full max-w-xl rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+        <div className="flex items-center justify-between gap-3">
+          <span>{errorMessage}</span>
+          <button
+            type="button"
+            onClick={loadHistory}
+            className="rounded-full border border-amber-300 px-3 py-1 text-xs font-medium transition hover:bg-amber-100"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   if (records.length === 0) return null
 
   return (
     <div className="w-full max-w-xl">
-      <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-[var(--sea-ink-soft)]">
-        Recent Models
-      </p>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <p className="text-center text-xs font-semibold uppercase tracking-widest text-[var(--sea-ink-soft)]">
+          Recent Models
+        </p>
+        <button
+          type="button"
+          onClick={loadHistory}
+          className="rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-3 py-1 text-xs font-medium text-[var(--sea-ink-soft)] transition hover:border-[#56c6be] hover:text-[var(--sea-ink)]"
+        >
+          Refresh
+        </button>
+      </div>
       <div className="flex flex-col gap-1.5">
-        {records.map(r => (
+        {records.map((record) => (
           <button
-            key={r.id}
-            onClick={() => onSelect(r.path, r.name)}
+            key={record.id}
+            onClick={() => onSelect(record.path, record.name)}
             className="island-shell flex items-center gap-3 rounded-xl px-4 py-2.5 text-left transition hover:ring-1 hover:ring-[#56c6be]"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-5 w-5 shrink-0 text-[#56c6be]">
               <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
             </svg>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-[var(--sea-ink)]">{r.name}</p>
-              <p className="text-xs text-[var(--sea-ink-soft)]">{formatSize(r.size)} · {timeAgo(r.uploadedAt)}</p>
+              <p className="truncate text-sm font-medium text-[var(--sea-ink)]">{record.name}</p>
+              <p className="text-xs text-[var(--sea-ink-soft)]">
+                {formatSize(record.size)} · {timeAgo(record.uploadedAt)}
+              </p>
             </div>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 shrink-0 text-[var(--sea-ink-soft)]">
               <polyline points="9 18 15 12 9 6" />

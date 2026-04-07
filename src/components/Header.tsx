@@ -1,35 +1,49 @@
 import { signOut, useSession } from '../lib/auth-client'
+import {
+  isSupportedModelFile,
+  MAX_UPLOAD_BYTES,
+  uploadModelFile,
+} from '../lib/uploads'
 
 interface HeaderProps {
   fileName?: string | null
   onUpload?: (url: string, name: string, isProcessing?: boolean) => void
   hasModel?: boolean
   onProcessing?: (isProcessing: boolean) => void
+  onUploadComplete?: () => void
 }
 
-export default function Header({ fileName, onUpload, hasModel, onProcessing }: HeaderProps) {
+export default function Header({
+  fileName,
+  onUpload,
+  hasModel,
+  onProcessing,
+  onUploadComplete,
+}: HeaderProps) {
   const { data: session } = useSession()
 
   const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0]
-    if (!f || !onUpload) return
+    const file = e.target.files?.[0]
+    e.target.value = ''
 
-    // Signal processing if callback exists
+    if (!file || !onUpload) return
+
+    if (!isSupportedModelFile(file) || file.size <= 0 || file.size > MAX_UPLOAD_BYTES) {
+      return
+    }
+
     onProcessing?.(true)
 
-    const url = URL.createObjectURL(f)
-    onUpload(url, f.name, true)
+    const url = URL.createObjectURL(file)
+    onUpload(url, file.name, true)
 
-    // Logic for uploading to server (reusing DropZone logic but in header)
-    try {
-      const fd = new FormData()
-      fd.append('file', f)
-      await fetch('/api/upload', { method: 'POST', body: fd })
-    } catch (err) {
-      console.error('Upload failed:', err)
-    } finally {
-      onProcessing?.(false)
+    const uploadResult = await uploadModelFile(file)
+
+    if (!('error' in uploadResult)) {
+      onUploadComplete?.()
     }
+
+    onProcessing?.(false)
   }
 
   const handleSignOut = async () => {
@@ -40,7 +54,6 @@ export default function Header({ fileName, onUpload, hasModel, onProcessing }: H
   return (
     <header className="sticky top-0 z-50 border-b border-[var(--line)] bg-[var(--header-bg)] px-5 backdrop-blur-lg">
       <div className="flex h-14 items-center justify-between">
-        {/* Brand */}
         <div className="flex items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[linear-gradient(135deg,#56c6be,#2d9d8f)] shadow-md">
             <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
@@ -57,7 +70,6 @@ export default function Header({ fileName, onUpload, hasModel, onProcessing }: H
           </div>
         </div>
 
-        {/* Actions */}
         <div className="flex items-center gap-2">
           {hasModel && onUpload && (
             <label className="flex cursor-pointer items-center gap-1.5 rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-3 py-1.5 text-xs font-medium text-[var(--sea-ink-soft)] transition hover:border-[#56c6be] hover:text-[var(--sea-ink)]">
