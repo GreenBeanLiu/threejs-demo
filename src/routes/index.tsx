@@ -1,17 +1,27 @@
 import { Canvas } from '@react-three/fiber'
 import { createFileRoute } from '@tanstack/react-router'
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import ControlPanel from '../components/ControlPanel'
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import DropZone from '../components/DropZone'
 import Header from '../components/Header'
 import HistoryPanel from '../components/HistoryPanel'
-import ModelViewer, {
-  type ModelInfo,
-  type ViewerCommandState,
-  type ViewerProgressState,
-  type ViewerSettings,
-} from '../components/ModelViewer'
 import ViewerErrorBoundary from '../components/ViewerErrorBoundary'
+import type {
+  ModelInfo,
+  ViewerCommandState,
+  ViewerProgressState,
+  ViewerSettings,
+} from '../components/ModelViewer'
+
+const ControlPanel = lazy(() => import('../components/ControlPanel'))
+const ModelViewer = lazy(() => import('../components/ModelViewer'))
 
 export const Route = createFileRoute('/')({ component: ViewerPage })
 
@@ -221,7 +231,9 @@ function ViewerPage() {
     progress: viewerProgress,
   })
 
-  const effectiveModelUrl = modelUrl ? `${modelUrl}${modelUrl.includes('?') ? '&' : '?'}rv=${retryVersion}` : null
+  const effectiveModelUrl = modelUrl
+    ? `${modelUrl}${modelUrl.includes('?') ? '&' : '?'}rv=${retryVersion}`
+    : null
 
   return (
     <div className="flex h-[calc(100vh-57px)] flex-col">
@@ -337,7 +349,13 @@ function ViewerPage() {
               title="Save screenshot"
               className="absolute bottom-4 right-4 flex h-9 w-9 items-center justify-center rounded-full border border-[var(--chip-line)] bg-[var(--header-bg)] shadow-md backdrop-blur-sm transition hover:bg-[var(--chip-bg)]"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 text-[var(--sea-ink)]">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className="h-4 w-4 text-[var(--sea-ink)]"
+              >
                 <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 0 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                 <circle cx="12" cy="13" r="4" />
               </svg>
@@ -345,14 +363,16 @@ function ViewerPage() {
           </div>
 
           <div className="w-60 shrink-0 overflow-y-auto border-l border-[var(--line)] bg-[var(--header-bg)] p-3">
-            <ControlPanel
-              settings={settings}
-              onChange={patchSettings}
-              modelInfo={modelInfo}
-              fileName={fileName}
-              onFitToModel={handleFitToModel}
-              onResetView={handleResetView}
-            />
+            <Suspense fallback={<div className="text-sm text-[var(--sea-ink-soft)]">Loading controls…</div>}>
+              <ControlPanel
+                settings={settings}
+                onChange={patchSettings}
+                modelInfo={modelInfo}
+                fileName={fileName}
+                onFitToModel={handleFitToModel}
+                onResetView={handleResetView}
+              />
+            </Suspense>
           </div>
         </div>
       )}
