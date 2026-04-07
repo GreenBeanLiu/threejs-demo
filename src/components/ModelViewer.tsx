@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
-import { useThree, useFrame } from '@react-three/fiber'
-import { useGLTF, Environment, Grid, OrbitControls, Bounds, useBounds } from '@react-three/drei'
+import { useFrame, useThree } from '@react-three/fiber'
+import {
+  Bounds,
+  Environment,
+  Grid,
+  OrbitControls,
+  useBounds,
+  useGLTF,
+} from '@react-three/drei'
 import * as THREE from 'three'
 
 export interface ModelInfo {
@@ -23,6 +30,11 @@ export interface ViewerSettings {
   lightIntensity: number
 }
 
+export interface ViewerCommandState {
+  fitVersion: number
+  resetVersion: number
+}
+
 function Model({
   url,
   settings,
@@ -30,6 +42,8 @@ function Model({
   onBottomY,
   autoRotate,
   autoRotateSpeed,
+  fitVersion,
+  resetVersion,
 }: {
   url: string
   settings: ViewerSettings
@@ -37,17 +51,21 @@ function Model({
   onBottomY: (y: number) => void
   autoRotate: boolean
   autoRotateSpeed: number
+  fitVersion: number
+  resetVersion: number
 }) {
   const { scene } = useGLTF(url)
   const bounds = useBounds()
   const groupRef = useRef<THREE.Group>(null)
-  const reported = useRef(false)
+  const reportedUrlRef = useRef<string | null>(null)
 
   useEffect(() => {
-    if (!scene || reported.current) return
-    reported.current = true
+    if (!scene || reportedUrlRef.current === url) return
+    reportedUrlRef.current = url
 
-    let meshCount = 0, vertexCount = 0, triangleCount = 0
+    let meshCount = 0
+    let vertexCount = 0
+    let triangleCount = 0
     const materials = new Set<THREE.Material>()
     const textures = new Set<THREE.Texture>()
 
@@ -61,9 +79,9 @@ function Model({
         if (idx) triangleCount += idx.count / 3
         else if (pos) triangleCount += pos.count / 3
         const mats = Array.isArray(obj.material) ? obj.material : [obj.material]
-        mats.forEach(m => {
-          materials.add(m)
-          const stdMat = m as THREE.MeshStandardMaterial
+        mats.forEach((material) => {
+          materials.add(material)
+          const stdMat = material as THREE.MeshStandardMaterial
           if (stdMat.map) textures.add(stdMat.map)
           if (stdMat.normalMap) textures.add(stdMat.normalMap)
           if (stdMat.roughnessMap) textures.add(stdMat.roughnessMap)
@@ -73,26 +91,44 @@ function Model({
       }
     })
 
-    onInfo({ meshCount, vertexCount: Math.round(vertexCount), materialCount: materials.size, textureCount: textures.size, triangleCount: Math.round(triangleCount) })
+    onInfo({
+      meshCount,
+      vertexCount: Math.round(vertexCount),
+      materialCount: materials.size,
+      textureCount: textures.size,
+      triangleCount: Math.round(triangleCount),
+    })
 
-    // Calculate bounding box to find bottom Y
     const box = new THREE.Box3().setFromObject(scene)
     onBottomY(box.min.y)
-
+    groupRef.current?.rotation.set(0, 0, 0)
     bounds.refresh(scene).fit()
-  }, [scene, bounds, onInfo, onBottomY])
+  }, [scene, bounds, onInfo, onBottomY, url])
 
-  // Apply wireframe
   useEffect(() => {
     scene.traverse((obj) => {
       if (obj instanceof THREE.Mesh) {
         const mats = Array.isArray(obj.material) ? obj.material : [obj.material]
-        mats.forEach(m => { (m as THREE.MeshStandardMaterial).wireframe = settings.wireframe })
+        mats.forEach((material) => {
+          ;(material as THREE.MeshStandardMaterial).wireframe = settings.wireframe
+        })
       }
     })
   }, [scene, settings.wireframe])
 
-  // Auto-rotate the group (not the whole scene)
+  useEffect(() => {
+    if (!scene) return
+    bounds.refresh(scene).fit()
+  }, [bounds, fitVersion, scene])
+
+  useEffect(() => {
+    if (!scene) return
+    if (groupRef.current) {
+      groupRef.current.rotation.set(0, 0, 0)
+    }
+    bounds.refresh(scene).fit()
+  }, [bounds, resetVersion, scene])
+
   useFrame((_, delta) => {
     if (autoRotate && groupRef.current) {
       groupRef.current.rotation.y += delta * autoRotateSpeed * 0.5
@@ -110,10 +146,12 @@ export default function ModelViewer({
   url,
   settings,
   onInfo,
+  commands,
 }: {
   url: string
   settings: ViewerSettings
   onInfo: (info: ModelInfo) => void
+  commands?: ViewerCommandState
 }) {
   const { gl } = useThree()
   const [bottomY, setBottomY] = useState<number>(-0.01)
@@ -136,6 +174,8 @@ export default function ModelViewer({
           onBottomY={setBottomY}
           autoRotate={settings.autoRotate}
           autoRotateSpeed={settings.autoRotateSpeed}
+          fitVersion={commands?.fitVersion ?? 0}
+          resetVersion={commands?.resetVersion ?? 0}
         />
       </Bounds>
       {settings.showGrid && (

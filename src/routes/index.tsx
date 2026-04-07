@@ -1,11 +1,15 @@
-import { createFileRoute } from '@tanstack/react-router'
 import { Canvas } from '@react-three/fiber'
-import { Suspense, useCallback, useRef, useState } from 'react'
-import ModelViewer, { type ModelInfo, type ViewerSettings } from '../components/ModelViewer'
+import { createFileRoute } from '@tanstack/react-router'
+import { Suspense, useCallback, useMemo, useRef, useState } from 'react'
 import ControlPanel from '../components/ControlPanel'
 import DropZone from '../components/DropZone'
 import Header from '../components/Header'
 import HistoryPanel from '../components/HistoryPanel'
+import ModelViewer, {
+  type ModelInfo,
+  type ViewerCommandState,
+  type ViewerSettings,
+} from '../components/ModelViewer'
 
 export const Route = createFileRoute('/')({ component: ViewerPage })
 
@@ -45,6 +49,9 @@ function ViewerPage() {
   const [loading, setLoading] = useState(false)
   const [processing, setProcessing] = useState(false)
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0)
+  const [fitVersion, setFitVersion] = useState(0)
+  const [resetVersion, setResetVersion] = useState(0)
+  const [viewerError, setViewerError] = useState('')
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   const refreshHistory = useCallback(() => {
@@ -60,6 +67,7 @@ function ViewerPage() {
     })
     setFileName(name)
     setModelInfo(null)
+    setViewerError('')
     setLoading(true)
     if (isProcessing !== undefined) setProcessing(isProcessing)
   }, [])
@@ -76,6 +84,19 @@ function ViewerPage() {
     link.href = canvas.toDataURL('image/png')
     link.click()
   }, [fileName])
+
+  const handleFitToModel = useCallback(() => {
+    setFitVersion((value) => value + 1)
+  }, [])
+
+  const handleResetView = useCallback(() => {
+    setResetVersion((value) => value + 1)
+  }, [])
+
+  const viewerCommands = useMemo<ViewerCommandState>(
+    () => ({ fitVersion, resetVersion }),
+    [fitVersion, resetVersion],
+  )
 
   return (
     <div className="flex h-[calc(100vh-57px)] flex-col">
@@ -139,7 +160,12 @@ function ViewerPage() {
               onCreated={() => setLoading(false)}
             >
               <Suspense fallback={null}>
-                <ModelViewer url={modelUrl} settings={settings} onInfo={setModelInfo} />
+                <ModelViewer
+                  url={modelUrl}
+                  settings={settings}
+                  onInfo={setModelInfo}
+                  commands={viewerCommands}
+                />
               </Suspense>
             </Canvas>
 
@@ -148,6 +174,12 @@ function ViewerPage() {
                 message={processing ? 'Processing and saving...' : 'Loading model...'}
               />
             )}
+
+            {viewerError ? (
+              <div className="absolute left-4 top-4 z-30 max-w-md rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-lg">
+                {viewerError}
+              </div>
+            ) : null}
 
             <button
               onClick={handleScreenshot}
@@ -167,6 +199,8 @@ function ViewerPage() {
               onChange={patchSettings}
               modelInfo={modelInfo}
               fileName={fileName}
+              onFitToModel={handleFitToModel}
+              onResetView={handleResetView}
             />
           </div>
         </div>
