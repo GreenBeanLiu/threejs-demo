@@ -1,18 +1,8 @@
-import { Canvas } from '@react-three/fiber'
 import { createFileRoute } from '@tanstack/react-router'
-import {
-  lazy,
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import DropZone from '../components/DropZone'
 import Header from '../components/Header'
 import HistoryPanel from '../components/HistoryPanel'
-import ViewerErrorBoundary from '../components/ViewerErrorBoundary'
 import type {
   ModelInfo,
   ViewerCommandState,
@@ -20,8 +10,7 @@ import type {
   ViewerSettings,
 } from '../components/ModelViewer'
 
-const ControlPanel = lazy(() => import('../components/ControlPanel'))
-const ModelViewer = lazy(() => import('../components/ModelViewer'))
+const ViewerShell = lazy(() => import('../components/ViewerShell'))
 
 export const Route = createFileRoute('/')({ component: ViewerPage })
 
@@ -283,97 +272,76 @@ function ViewerPage() {
         </div>
       ) : (
         <div className="flex flex-1 overflow-hidden pt-14">
-          <div className="relative flex-1 overflow-hidden">
-            <Canvas
-              ref={canvasRef}
-              camera={{ position: [0, 1.5, 4], fov: 45 }}
-              gl={{ antialias: true, toneMapping: 4, preserveDrawingBuffer: true }}
-              shadows
-              style={{ width: '100%', height: '100%' }}
+          <Suspense fallback={<div className="flex flex-1 items-center justify-center text-sm text-[var(--sea-ink-soft)]">Loading viewer…</div>}>
+            <ViewerShell
+              canvasRef={canvasRef}
+              effectiveModelUrl={effectiveModelUrl}
+              settings={settings}
+              modelInfo={modelInfo}
+              fileName={fileName}
+              viewerCommands={viewerCommands}
+              onViewerError={setViewerError}
+              onViewerProgress={handleViewerProgress}
+              onSettingsChange={patchSettings}
+              onModelInfo={setModelInfo}
+              onFitToModel={handleFitToModel}
+              onResetView={handleResetView}
               onCreated={() => setLoading(false)}
+            />
+          </Suspense>
+
+          {loading && <LoadingOverlay message={loadingMessage} progress={viewerProgress} />}
+
+          {viewerError ? (
+            <div className="absolute left-4 top-4 z-30 max-w-md rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-lg">
+              <p className="font-medium">{viewerError}</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={handleRetryModelLoad}
+                  className="rounded-full border border-red-300 px-3 py-1 text-xs font-medium transition hover:bg-red-100"
+                >
+                  Retry load
+                </button>
+                <button
+                  type="button"
+                  onClick={resetToLanding}
+                  className="rounded-full border border-[var(--chip-line)] bg-white px-3 py-1 text-xs font-medium text-[var(--sea-ink)] transition hover:bg-[var(--chip-bg)]"
+                >
+                  Back to upload
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          {screenshotMessage ? (
+            <div className="absolute left-4 top-4 z-30 max-w-xs rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 shadow-lg">
+              {screenshotMessage}
+            </div>
+          ) : null}
+
+          {screenshotError ? (
+            <div className="absolute left-4 top-4 z-30 max-w-xs rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-lg">
+              {screenshotError}
+            </div>
+          ) : null}
+
+          <button
+            onClick={handleScreenshot}
+            title="Save screenshot"
+            className="absolute bottom-4 right-4 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-[var(--chip-line)] bg-[var(--header-bg)] shadow-md backdrop-blur-sm transition hover:bg-[var(--chip-bg)]"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="h-4 w-4 text-[var(--sea-ink)]"
             >
-              <Suspense fallback={null}>
-                <ViewerErrorBoundary modelUrl={effectiveModelUrl} onError={setViewerError}>
-                  {effectiveModelUrl ? (
-                    <ModelViewer
-                      key={effectiveModelUrl}
-                      url={effectiveModelUrl}
-                      settings={settings}
-                      onInfo={setModelInfo}
-                      commands={viewerCommands}
-                      onProgress={handleViewerProgress}
-                    />
-                  ) : null}
-                </ViewerErrorBoundary>
-              </Suspense>
-            </Canvas>
-
-            {loading && <LoadingOverlay message={loadingMessage} progress={viewerProgress} />}
-
-            {viewerError ? (
-              <div className="absolute left-4 top-4 z-30 max-w-md rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-lg">
-                <p className="font-medium">{viewerError}</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={handleRetryModelLoad}
-                    className="rounded-full border border-red-300 px-3 py-1 text-xs font-medium transition hover:bg-red-100"
-                  >
-                    Retry load
-                  </button>
-                  <button
-                    type="button"
-                    onClick={resetToLanding}
-                    className="rounded-full border border-[var(--chip-line)] bg-white px-3 py-1 text-xs font-medium text-[var(--sea-ink)] transition hover:bg-[var(--chip-bg)]"
-                  >
-                    Back to upload
-                  </button>
-                </div>
-              </div>
-            ) : null}
-
-            {screenshotMessage ? (
-              <div className="absolute left-4 top-4 z-30 max-w-xs rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 shadow-lg">
-                {screenshotMessage}
-              </div>
-            ) : null}
-
-            {screenshotError ? (
-              <div className="absolute left-4 top-4 z-30 max-w-xs rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-lg">
-                {screenshotError}
-              </div>
-            ) : null}
-
-            <button
-              onClick={handleScreenshot}
-              title="Save screenshot"
-              className="absolute bottom-4 right-4 flex h-9 w-9 items-center justify-center rounded-full border border-[var(--chip-line)] bg-[var(--header-bg)] shadow-md backdrop-blur-sm transition hover:bg-[var(--chip-bg)]"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                className="h-4 w-4 text-[var(--sea-ink)]"
-              >
-                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 0 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                <circle cx="12" cy="13" r="4" />
-              </svg>
-            </button>
-          </div>
-
-          <div className="w-60 shrink-0 overflow-y-auto border-l border-[var(--line)] bg-[var(--header-bg)] p-3">
-            <Suspense fallback={<div className="text-sm text-[var(--sea-ink-soft)]">Loading controls…</div>}>
-              <ControlPanel
-                settings={settings}
-                onChange={patchSettings}
-                modelInfo={modelInfo}
-                fileName={fileName}
-                onFitToModel={handleFitToModel}
-                onResetView={handleResetView}
-              />
-            </Suspense>
-          </div>
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 0 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+              <circle cx="12" cy="13" r="4" />
+            </svg>
+          </button>
         </div>
       )}
     </div>
