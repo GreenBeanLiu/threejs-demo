@@ -1,6 +1,6 @@
 import { Canvas } from '@react-three/fiber'
 import { createFileRoute } from '@tanstack/react-router'
-import { Suspense, useCallback, useMemo, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ControlPanel from '../components/ControlPanel'
 import DropZone from '../components/DropZone'
 import Header from '../components/Header'
@@ -53,7 +53,22 @@ function ViewerPage() {
   const [fitVersion, setFitVersion] = useState(0)
   const [resetVersion, setResetVersion] = useState(0)
   const [viewerError, setViewerError] = useState('')
+  const [screenshotMessage, setScreenshotMessage] = useState('')
+  const [screenshotError, setScreenshotError] = useState('')
   const canvasRef = useRef<HTMLCanvasElement>(null)
+
+  useEffect(() => {
+    if (!screenshotMessage && !screenshotError) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setScreenshotMessage('')
+      setScreenshotError('')
+    }, 2200)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [screenshotMessage, screenshotError])
 
   const refreshHistory = useCallback(() => {
     setHistoryRefreshKey((value) => value + 1)
@@ -69,6 +84,8 @@ function ViewerPage() {
     setFileName(name)
     setModelInfo(null)
     setViewerError('')
+    setScreenshotMessage('')
+    setScreenshotError('')
     setLoading(true)
     if (isProcessing !== undefined) setProcessing(isProcessing)
   }, [])
@@ -78,12 +95,26 @@ function ViewerPage() {
   }, [])
 
   const handleScreenshot = useCallback(() => {
+    setScreenshotMessage('')
+    setScreenshotError('')
+
     const canvas = document.querySelector('canvas')
-    if (!canvas) return
-    const link = document.createElement('a')
-    link.download = (fileName?.replace(/\.[^.]+$/, '') ?? 'model') + '-preview.png'
-    link.href = canvas.toDataURL('image/png')
-    link.click()
+    if (!canvas) {
+      setScreenshotError('Screenshot failed: canvas not ready.')
+      return
+    }
+
+    try {
+      const link = document.createElement('a')
+      link.download = (fileName?.replace(/\.[^.]+$/, '') ?? 'model') + '-preview.png'
+      link.href = canvas.toDataURL('image/png')
+      link.click()
+      setScreenshotMessage('Screenshot saved.')
+    } catch (error) {
+      setScreenshotError(
+        error instanceof Error ? `Screenshot failed: ${error.message}` : 'Screenshot failed.',
+      )
+    }
   }, [fileName])
 
   const handleFitToModel = useCallback(() => {
@@ -181,6 +212,18 @@ function ViewerPage() {
             {viewerError ? (
               <div className="absolute left-4 top-4 z-30 max-w-md rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-lg">
                 {viewerError}
+              </div>
+            ) : null}
+
+            {screenshotMessage ? (
+              <div className="absolute left-4 top-4 z-30 max-w-xs rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 shadow-lg">
+                {screenshotMessage}
+              </div>
+            ) : null}
+
+            {screenshotError ? (
+              <div className="absolute left-4 top-4 z-30 max-w-xs rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-lg">
+                {screenshotError}
               </div>
             ) : null}
 
