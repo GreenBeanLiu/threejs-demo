@@ -1,4 +1,5 @@
 import { signOut, useSession } from '../lib/auth-client'
+import { useEffect, useState } from 'react'
 import {
   isSupportedModelFile,
   MAX_UPLOAD_BYTES,
@@ -20,7 +21,14 @@ export default function Header({
   onProcessing,
   onUploadComplete,
 }: HeaderProps) {
-  const { data: session } = useSession()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const sessionResult = mounted && typeof useSession === 'function' ? useSession() : null
+  const session = sessionResult?.data
 
   const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
