@@ -239,35 +239,88 @@ function ViewerPage() {
       )}
 
       {!modelUrl ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-8 p-6">
-          <div className="text-center">
-            <h1 className="mb-2 text-4xl font-bold tracking-tight text-[var(--sea-ink)]">
-              Packaging 3D Viewer
-            </h1>
-            <p className="text-base text-[var(--sea-ink-soft)]">
-              Upload your packaging model to preview it in interactive 3D
-            </p>
-          </div>
-          <div className="relative h-64 w-full max-w-xl">
-            <DropZone
-              onFile={handleFile}
-              onProcessing={setProcessing}
-              onUploadComplete={refreshHistory}
-            />
-            {loading && <LoadingOverlay message={loadingMessage} progress={viewerProgress} />}
-          </div>
-          <HistoryPanel onSelect={handleFile} refreshKey={historyRefreshKey} />
-          <div className="flex flex-wrap justify-center gap-6 text-sm text-[var(--sea-ink-soft)]">
-            {[
-              ['360° View', 'Rotate and inspect from any angle'],
-              ['Lighting Studio', 'Professional lighting presets'],
-              ['Instant Share', 'Screenshot in one click'],
-            ].map(([title, desc]) => (
-              <div key={title} className="island-shell max-w-[180px] rounded-2xl p-4 text-center">
-                <p className="mb-1 font-semibold text-[var(--sea-ink)]">{title}</p>
-                <p className="text-xs">{desc}</p>
+        <div className="flex flex-1 flex-col overflow-y-auto px-6 py-8 lg:px-10">
+          <div className="mx-auto grid w-full max-w-6xl gap-8 lg:grid-cols-[minmax(0,1.15fr)_360px] lg:items-start">
+            <section className="flex flex-col gap-6">
+              <div className="max-w-2xl">
+                <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-3 py-1 text-xs font-medium tracking-wide text-[var(--sea-ink-soft)]">
+                  <span className="h-2 w-2 rounded-full bg-[#56c6be]" />
+                  PackView · Packaging 3D Review
+                </div>
+                <h1 className="text-4xl font-bold tracking-tight text-[var(--sea-ink)] sm:text-5xl">
+                  Review packaging models in a cleaner, client-friendly 3D workspace.
+                </h1>
+                <p className="mt-4 max-w-xl text-base leading-7 text-[var(--sea-ink-soft)] sm:text-lg">
+                  Upload GLB or GLTF files, inspect them from every angle, tune lighting, and keep a recent model history without leaving the browser.
+                </p>
               </div>
-            ))}
+
+              <div className="grid gap-4 sm:grid-cols-3">
+                {[
+                  ['Fast review', 'Open product or packaging renders in seconds with a lighter landing page.'],
+                  ['Studio controls', 'Switch lighting presets, reset camera, and capture quick review screenshots.'],
+                  ['Recent history', 'Jump back into recently uploaded packaging models without re-uploading.'],
+                ].map(([title, desc]) => (
+                  <div key={title} className="island-shell rounded-3xl p-5">
+                    <p className="mb-2 text-sm font-semibold text-[var(--sea-ink)]">{title}</p>
+                    <p className="text-sm leading-6 text-[var(--sea-ink-soft)]">{desc}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="relative min-h-[300px] rounded-[28px] border border-[var(--line)] bg-[var(--header-bg)] p-4 shadow-[0_24px_60px_rgba(11,22,28,0.12)] sm:p-6">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-[var(--sea-ink)]">Upload a packaging model</p>
+                    <p className="text-sm text-[var(--sea-ink-soft)]">
+                      Supports <span className="font-medium text-[var(--sea-ink)]">.glb</span> and <span className="font-medium text-[var(--sea-ink)]">.gltf</span> up to 50MB.
+                    </p>
+                  </div>
+                  <div className="rounded-full bg-[var(--chip-bg)] px-3 py-1 text-xs text-[var(--sea-ink-soft)]">
+                    Best for mockups, dielines, and packaging previews
+                  </div>
+                </div>
+
+                <div className="relative h-64 w-full">
+                  <DropZone
+                    onFile={handleFile}
+                    onProcessing={setProcessing}
+                    onUploadComplete={refreshHistory}
+                  />
+                  {loading && <LoadingOverlay message={loadingMessage} progress={viewerProgress} />}
+                </div>
+              </div>
+            </section>
+
+            <aside className="flex flex-col gap-4">
+              <div className="island-shell rounded-[28px] p-5">
+                <p className="text-sm font-semibold text-[var(--sea-ink)]">Recent uploads</p>
+                <p className="mt-1 text-sm leading-6 text-[var(--sea-ink-soft)]">
+                  Re-open recently reviewed models and keep your packaging review flow moving.
+                </p>
+                <div className="mt-4">
+                  <HistoryPanel onSelect={handleFile} refreshKey={historyRefreshKey} />
+                </div>
+              </div>
+
+              <div className="island-shell rounded-[28px] p-5">
+                <p className="text-sm font-semibold text-[var(--sea-ink)]">Suggested review flow</p>
+                <ol className="mt-3 space-y-3 text-sm text-[var(--sea-ink-soft)]">
+                  {[
+                    'Upload the latest packaging model revision.',
+                    'Check lighting presets and camera fit for overall form.',
+                    'Use screenshot export to share quick review snapshots.',
+                  ].map((step, index) => (
+                    <li key={step} className="flex gap-3 leading-6">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[rgba(86,198,190,0.14)] text-xs font-semibold text-[var(--sea-ink)]">
+                        {index + 1}
+                      </span>
+                      <span>{step}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            </aside>
           </div>
         </div>
       ) : (

@@ -95,6 +95,7 @@ export default function ControlPanel({
   settings,
   onChange,
   modelInfo,
+  fileName,
   onFitToModel,
   onResetView,
 }: ControlPanelProps) {
@@ -192,24 +193,29 @@ export default function ControlPanel({
         />
       </div>
 
-      {modelInfo && (
-        <>
-          <SectionTitle>Model Info</SectionTitle>
-          <div className="grid grid-cols-2 gap-1.5">
-            {([
-              ['Meshes', modelInfo.meshCount],
-              ['Materials', modelInfo.materialCount],
-              ['Textures', modelInfo.textureCount],
-              ['Vertices', modelInfo.vertexCount.toLocaleString()],
-              ['Triangles', modelInfo.triangleCount.toLocaleString()],
-            ] as [string, string | number][]).map(([label, value]) => (
-              <div key={label} className="rounded-xl bg-[var(--chip-bg)] px-3 py-2">
-                <p className="text-[10px] text-[var(--sea-ink-soft)]">{label}</p>
-                <p className="text-sm font-semibold tabular-nums text-[var(--sea-ink)]">{value}</p>
-              </div>
-            ))}
-          </div>
-        </>
+      <SectionTitle>Model Info</SectionTitle>
+      {modelInfo ? (
+        <div className="grid grid-cols-2 gap-1.5">
+          {([
+            ['Meshes', modelInfo.meshCount],
+            ['Materials', modelInfo.materialCount],
+            ['Textures', modelInfo.textureCount],
+            ['Vertices', modelInfo.vertexCount.toLocaleString()],
+            ['Triangles', modelInfo.triangleCount.toLocaleString()],
+          ] as [string, string | number][]).map(([label, value]) => (
+            <div key={label} className="rounded-xl bg-[var(--chip-bg)] px-3 py-2">
+              <p className="text-[10px] text-[var(--sea-ink-soft)]">{label}</p>
+              <p className="text-sm font-semibold tabular-nums text-[var(--sea-ink)]">{value}</p>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-dashed border-[var(--chip-line)] bg-[var(--chip-bg)] px-4 py-4 text-sm text-[var(--sea-ink-soft)]">
+          <p className="font-medium text-[var(--sea-ink)]">{fileName ?? 'No model selected yet'}</p>
+          <p className="mt-1 text-xs leading-5">
+            Upload a GLB or GLTF file to inspect geometry counts, materials, textures, and preview settings here.
+          </p>
+        </div>
       )}
     </div>
   )
