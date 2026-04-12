@@ -4,12 +4,16 @@ import DropZone from './DropZone'
 
 const uploadModelFileMock = vi.fn()
 const createObjectUrlMock = vi.fn(() => 'blob:preview-model')
+const revokeObjectUrlMock = vi.fn()
 
-vi.mock('../lib/uploads', () => ({
-  MAX_UPLOAD_BYTES: 50 * 1024 * 1024,
-  isSupportedModelFile: (file: File) => /\.(glb|gltf)$/i.test(file.name),
-  uploadModelFile: (file: File) => uploadModelFileMock(file),
-}))
+vi.mock('../lib/uploads', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../lib/uploads')>()
+
+  return {
+    ...actual,
+    uploadModelFile: (file: File) => uploadModelFileMock(file),
+  }
+})
 
 describe('DropZone', () => {
   beforeAll(() => {
@@ -18,12 +22,19 @@ describe('DropZone', () => {
       writable: true,
       value: createObjectUrlMock,
     })
+
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      configurable: true,
+      writable: true,
+      value: revokeObjectUrlMock,
+    })
   })
 
   beforeEach(() => {
     uploadModelFileMock.mockReset()
     createObjectUrlMock.mockClear()
     createObjectUrlMock.mockReturnValue('blob:preview-model')
+    revokeObjectUrlMock.mockClear()
   })
 
   it('shows validation error for unsupported files', async () => {
@@ -65,6 +76,8 @@ describe('DropZone', () => {
       expect(onFile).toHaveBeenCalledWith('blob:preview-model', 'package.glb', true)
     })
 
+    expect(onFile).toHaveBeenLastCalledWith('/api/model/abc.glb', 'package.glb', false)
+    expect(revokeObjectUrlMock).toHaveBeenCalledWith('blob:preview-model')
     expect(onProcessing).toHaveBeenNthCalledWith(1, true)
     expect(onProcessing).toHaveBeenLastCalledWith(false)
     expect(onUploadComplete).toHaveBeenCalled()
@@ -81,6 +94,9 @@ describe('DropZone', () => {
 
     fireEvent.change(input, { target: { files: [file] } })
 
+    await waitFor(() => {
+      expect(revokeObjectUrlMock).toHaveBeenCalledWith('blob:preview-model')
+    })
     expect(await screen.findByText('Upload service misconfigured')).toBeTruthy()
   })
 })

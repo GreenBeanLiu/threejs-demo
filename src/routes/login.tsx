@@ -1,4 +1,4 @@
-import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import { signIn } from '../lib/auth-client'
 
@@ -77,7 +77,7 @@ function LoginPage() {
 
         <p className="mt-6 text-center text-sm text-[var(--sea-ink-soft)]">
           No account?{' '}
-          <a href="/register" className="text-[#56c6be] hover:underline">Create one</a>
+          <Link to="/register" className="text-[#56c6be] hover:underline">Create one</Link>
         </p>
       </div>
     </div>

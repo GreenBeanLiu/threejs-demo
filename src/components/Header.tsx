@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import {
   isSupportedModelFile,
   MAX_UPLOAD_BYTES,
+  revokeObjectUrl,
   uploadModelFile,
 } from '../lib/uploads'
 
@@ -42,12 +43,16 @@ export default function Header({
 
     onProcessing?.(true)
 
-    const url = URL.createObjectURL(file)
-    onUpload(url, file.name, true)
+    const localUrl = URL.createObjectURL(file)
+    onUpload(localUrl, file.name, true)
 
     const uploadResult = await uploadModelFile(file)
 
-    if (!('error' in uploadResult)) {
+    if ('error' in uploadResult) {
+      revokeObjectUrl(localUrl)
+    } else {
+      onUpload(uploadResult.path, file.name, false)
+      revokeObjectUrl(localUrl)
       onUploadComplete?.()
     }
 

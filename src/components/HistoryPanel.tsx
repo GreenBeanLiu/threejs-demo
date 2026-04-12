@@ -46,6 +46,12 @@ export default function HistoryPanel({ onSelect, refreshKey = 0 }: HistoryPanelP
           | null
 
         if (!response.ok) {
+          if (response.status === 401) {
+            setRecords([])
+            setLoading(false)
+            return
+          }
+
           throw new Error(
             data && !Array.isArray(data) && data.error
               ? data.error

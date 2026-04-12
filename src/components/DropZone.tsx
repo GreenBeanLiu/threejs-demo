@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   isSupportedModelFile,
   MAX_UPLOAD_BYTES,
+  revokeObjectUrl,
   uploadModelFile,
 } from '../lib/uploads'
 
@@ -57,8 +58,11 @@ export default function DropZone({
       const uploadResult = await uploadModelFile(file)
 
       if ('error' in uploadResult) {
+        revokeObjectUrl(localUrl)
         setErrorMessage(uploadResult.error)
       } else {
+        onFile(uploadResult.path, file.name, false)
+        revokeObjectUrl(localUrl)
         setSuccessMessage('Model uploaded successfully.')
         onUploadComplete?.()
       }
