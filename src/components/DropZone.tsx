@@ -10,12 +10,14 @@ interface DropZoneProps {
   onFile: (url: string, name: string, isProcessing?: boolean) => void
   onProcessing?: (isProcessing: boolean) => void
   onUploadComplete?: () => void
+  signedIn?: boolean
 }
 
 export default function DropZone({
   onFile,
   onProcessing,
   onUploadComplete,
+  signedIn = false,
 }: DropZoneProps) {
   const [dragging, setDragging] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
@@ -117,6 +119,9 @@ export default function DropZone({
           <p className="text-base font-semibold text-[var(--sea-ink)]">Drop a GLB / GLTF file here</p>
           <p className="mt-1 text-sm text-[var(--sea-ink-soft)]">or click to browse</p>
           <p className="mt-2 text-xs text-[var(--sea-ink-soft)]">Supported formats: .glb, .gltf · Max size: 50MB</p>
+          <p className="mt-1 text-xs text-[var(--sea-ink-soft)]">
+            {signedIn ? 'Upload will save to your recent history automatically.' : 'Sign in first if you want uploads saved to your account history.'}
+          </p>
         </div>
       </label>
 

@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useSession } from '../lib/auth-client'
 import DropZone from '../components/DropZone'
 import Header from '../components/Header'
 import HistoryPanel from '../components/HistoryPanel'
@@ -89,6 +90,7 @@ function LoadingOverlay({
 }
 
 function ViewerPage() {
+  const { data: session } = useSession()
   const [modelUrl, setModelUrl] = useState<string | null>(null)
   const [fileName, setFileName] = useState<string | null>(null)
   const [modelInfo, setModelInfo] = useState<ModelInfo | null>(null)
@@ -286,6 +288,7 @@ function ViewerPage() {
                     onFile={handleFile}
                     onProcessing={setProcessing}
                     onUploadComplete={refreshHistory}
+                    signedIn={!!session?.user}
                   />
                   {loading && <LoadingOverlay message={loadingMessage} progress={viewerProgress} />}
                 </div>
@@ -299,7 +302,7 @@ function ViewerPage() {
                   Re-open recently reviewed models and keep your packaging review flow moving.
                 </p>
                 <div className="mt-4">
-                  <HistoryPanel onSelect={handleFile} refreshKey={historyRefreshKey} />
+                  <HistoryPanel onSelect={handleFile} refreshKey={historyRefreshKey} selectedPath={modelUrl} />
                 </div>
               </div>
 
@@ -325,6 +328,31 @@ function ViewerPage() {
         </div>
       ) : (
         <div className="flex flex-1 overflow-hidden pt-14">
+          <div className="pointer-events-none absolute left-4 right-[260px] top-[72px] z-20 hidden sm:block">
+            <div className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--line)] bg-[rgba(255,255,255,0.78)] px-4 py-3 shadow-lg backdrop-blur dark:bg-[rgba(19,25,31,0.78)]">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-[var(--sea-ink)]">
+                  {fileName ?? 'Current model'}
+                </p>
+                <p className="text-xs text-[var(--sea-ink-soft)]">
+                  {processing
+                    ? 'Uploading model and preparing viewer…'
+                    : loading
+                      ? loadingMessage
+                      : viewerError
+                        ? 'Viewer needs attention'
+                        : 'Model ready for review'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={resetToLanding}
+                className="pointer-events-auto rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-3 py-1.5 text-xs font-medium text-[var(--sea-ink-soft)] transition hover:border-[#56c6be] hover:text-[var(--sea-ink)]"
+              >
+                Back
+              </button>
+            </div>
+          </div>
           <Suspense fallback={<div className="flex flex-1 items-center justify-center text-sm text-[var(--sea-ink-soft)]">Loading viewer…</div>}>
             <ViewerShell
               canvasRef={canvasRef}

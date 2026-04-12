@@ -27,9 +27,10 @@ function timeAgo(isoString: string) {
 interface HistoryPanelProps {
   onSelect: (url: string, name: string, isProcessing?: boolean) => void
   refreshKey?: number
+  selectedPath?: string | null
 }
 
-export default function HistoryPanel({ onSelect, refreshKey = 0 }: HistoryPanelProps) {
+export default function HistoryPanel({ onSelect, refreshKey = 0, selectedPath = null }: HistoryPanelProps) {
   const [records, setRecords] = useState<UploadRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
@@ -97,7 +98,13 @@ export default function HistoryPanel({ onSelect, refreshKey = 0 }: HistoryPanelP
     )
   }
 
-  if (records.length === 0) return null
+  if (records.length === 0) {
+    return (
+      <div className="w-full max-w-xl rounded-2xl border border-dashed border-[var(--line)] bg-[var(--chip-bg)] px-4 py-4 text-sm text-[var(--sea-ink-soft)]">
+        No recent models yet. Your latest uploads will appear here for quick re-opening.
+      </div>
+    )
+  }
 
   return (
     <div className="w-full max-w-xl">
@@ -114,11 +121,16 @@ export default function HistoryPanel({ onSelect, refreshKey = 0 }: HistoryPanelP
         </button>
       </div>
       <div className="flex flex-col gap-1.5">
-        {records.map((record) => (
+        {records.map((record) => {
+          const isActive = selectedPath === record.path
+
+          return (
           <button
             key={record.id}
             onClick={() => onSelect(record.path, record.name)}
-            className="island-shell flex items-center gap-3 rounded-xl px-4 py-2.5 text-left transition hover:ring-1 hover:ring-[#56c6be]"
+            className={`island-shell flex items-center gap-3 rounded-xl px-4 py-2.5 text-left transition hover:ring-1 hover:ring-[#56c6be] ${
+              isActive ? 'ring-1 ring-[#56c6be] bg-[rgba(79,184,178,0.08)]' : ''
+            }`}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-5 w-5 shrink-0 text-[#56c6be]">
               <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
@@ -128,12 +140,16 @@ export default function HistoryPanel({ onSelect, refreshKey = 0 }: HistoryPanelP
               <p className="text-xs text-[var(--sea-ink-soft)]">
                 {formatSize(record.size)} · {timeAgo(record.uploadedAt)}
               </p>
+              {isActive ? (
+                <p className="mt-1 text-[11px] font-medium text-[#2d9d8f]">Currently open</p>
+              ) : null}
             </div>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 shrink-0 text-[var(--sea-ink-soft)]">
               <polyline points="9 18 15 12 9 6" />
             </svg>
           </button>
-        ))}
+          )
+        })}
       </div>
     </div>
   )
