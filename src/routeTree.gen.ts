@@ -12,6 +12,10 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiUploadRouteImport } from './routes/api/upload'
+import { Route as ApiHistoryRouteImport } from './routes/api/history'
+import { Route as ApiModelIdRouteImport } from './routes/api/model.$id'
+import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
@@ -28,35 +32,93 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiUploadRoute = ApiUploadRouteImport.update({
+  id: '/api/upload',
+  path: '/api/upload',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiHistoryRoute = ApiHistoryRouteImport.update({
+  id: '/api/history',
+  path: '/api/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiModelIdRoute = ApiModelIdRouteImport.update({
+  id: '/api/model/$id',
+  path: '/api/model/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
+  id: '/api/auth/$',
+  path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/api/history': typeof ApiHistoryRoute
+  '/api/upload': typeof ApiUploadRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/model/$id': typeof ApiModelIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/api/history': typeof ApiHistoryRoute
+  '/api/upload': typeof ApiUploadRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/model/$id': typeof ApiModelIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/api/history': typeof ApiHistoryRoute
+  '/api/upload': typeof ApiUploadRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/model/$id': typeof ApiModelIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/register'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/register'
+    | '/api/history'
+    | '/api/upload'
+    | '/api/auth/$'
+    | '/api/model/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/register'
-  id: '__root__' | '/' | '/login' | '/register'
+  to:
+    | '/'
+    | '/login'
+    | '/register'
+    | '/api/history'
+    | '/api/upload'
+    | '/api/auth/$'
+    | '/api/model/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/login'
+    | '/register'
+    | '/api/history'
+    | '/api/upload'
+    | '/api/auth/$'
+    | '/api/model/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
   RegisterRoute: typeof RegisterRoute
+  ApiHistoryRoute: typeof ApiHistoryRoute
+  ApiUploadRoute: typeof ApiUploadRoute
+  ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiModelIdRoute: typeof ApiModelIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -82,6 +144,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/upload': {
+      id: '/api/upload'
+      path: '/api/upload'
+      fullPath: '/api/upload'
+      preLoaderRoute: typeof ApiUploadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/history': {
+      id: '/api/history'
+      path: '/api/history'
+      fullPath: '/api/history'
+      preLoaderRoute: typeof ApiHistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/model/$id': {
+      id: '/api/model/$id'
+      path: '/api/model/$id'
+      fullPath: '/api/model/$id'
+      preLoaderRoute: typeof ApiModelIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/auth/$': {
+      id: '/api/auth/$'
+      path: '/api/auth/$'
+      fullPath: '/api/auth/$'
+      preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -89,6 +179,10 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
   RegisterRoute: RegisterRoute,
+  ApiHistoryRoute: ApiHistoryRoute,
+  ApiUploadRoute: ApiUploadRoute,
+  ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiModelIdRoute: ApiModelIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

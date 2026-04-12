@@ -1,13 +1,20 @@
 import { betterAuth } from 'better-auth'
-import { getDb } from './db'
+import { kyselyAdapter } from '@better-auth/kysely-adapter'
+import { NodeSqliteDialect } from '@better-auth/kysely-adapter/node-sqlite-dialect'
+import { Kysely } from 'kysely'
+import { getAuthDb } from './db'
 
-const db = getDb()
+const authDb = getAuthDb()
+const kyselyDb = new Kysely({
+  dialect: new NodeSqliteDialect({
+    database: authDb,
+  }),
+})
 
 export const auth = betterAuth({
-  database: {
-    db,
-    type: 'libsql',
-  },
+  database: kyselyAdapter(kyselyDb, {
+    type: 'sqlite',
+  }),
   secret: process.env.BETTER_AUTH_SECRET || 'packview-dev-secret-change-in-prod',
   baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
   emailAndPassword: {
