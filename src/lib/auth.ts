@@ -32,7 +32,7 @@ export const auth = betterAuth({
     },
   },
   trustedOrigins: [
-    'https://web-production-ac0c6.up.railway.app',
+    'https://threejs-demo-production.up.railway.app',
     'http://localhost:3000',
   ],
 })
