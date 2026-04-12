@@ -1,5 +1,4 @@
 import { signOut, useSession } from '../lib/auth-client'
-import { useEffect, useState } from 'react'
 import {
   isSupportedModelFile,
   MAX_UPLOAD_BYTES,
@@ -15,6 +14,33 @@ interface HeaderProps {
   onUploadComplete?: () => void
 }
 
+function SessionControls() {
+  const { data: session } = useSession()
+
+  const handleSignOut = async () => {
+    await signOut()
+    window.location.href = '/login'
+  }
+
+  if (!session?.user) {
+    return null
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className="hidden text-xs text-[var(--sea-ink-soft)] sm:inline">
+        {session.user.name || session.user.email}
+      </span>
+      <button
+        onClick={handleSignOut}
+        className="rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-3 py-1.5 text-xs font-medium text-[var(--sea-ink-soft)] transition hover:border-red-400 hover:text-red-400"
+      >
+        Sign out
+      </button>
+    </div>
+  )
+}
+
 export default function Header({
   fileName,
   onUpload,
@@ -22,15 +48,6 @@ export default function Header({
   onProcessing,
   onUploadComplete,
 }: HeaderProps) {
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  const sessionResult = mounted && typeof useSession === 'function' ? useSession() : null
-  const session = sessionResult?.data
-
   const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     e.target.value = ''
@@ -57,11 +74,6 @@ export default function Header({
     }
 
     onProcessing?.(false)
-  }
-
-  const handleSignOut = async () => {
-    await signOut()
-    window.location.href = '/login'
   }
 
   return (
@@ -95,17 +107,7 @@ export default function Header({
               Upload model
             </label>
           )}
-          {session?.user && (
-            <div className="flex items-center gap-2">
-              <span className="hidden text-xs text-[var(--sea-ink-soft)] sm:inline">{session.user.name || session.user.email}</span>
-              <button
-                onClick={handleSignOut}
-                className="rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-3 py-1.5 text-xs font-medium text-[var(--sea-ink-soft)] transition hover:border-red-400 hover:text-red-400"
-              >
-                Sign out
-              </button>
-            </div>
-          )}
+          <SessionControls />
         </div>
       </div>
     </header>
