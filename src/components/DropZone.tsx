@@ -22,6 +22,7 @@ export default function DropZone({
   const [dragging, setDragging] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
+  const [statusMessage, setStatusMessage] = useState('')
 
   useEffect(() => {
     if (!successMessage) {
@@ -36,6 +37,7 @@ export default function DropZone({
     async (file: File) => {
       setErrorMessage('')
       setSuccessMessage('')
+      setStatusMessage('')
 
       if (!isSupportedModelFile(file)) {
         setErrorMessage('Only GLB and GLTF files are supported.')
@@ -53,6 +55,7 @@ export default function DropZone({
       }
 
       onProcessing?.(true)
+      setStatusMessage(`Preparing ${file.name}…`)
 
       const localUrl = URL.createObjectURL(file)
       onFile(localUrl, file.name, true)
@@ -61,11 +64,13 @@ export default function DropZone({
 
       if ('error' in uploadResult) {
         revokeObjectUrl(localUrl)
+        setStatusMessage('')
         setErrorMessage(uploadResult.error)
       } else {
         onFile(uploadResult.path, file.name, false)
         revokeObjectUrl(localUrl)
-        setSuccessMessage('Model uploaded successfully.')
+        setStatusMessage('')
+        setSuccessMessage(`${file.name} is ready in the viewer.`)
         onUploadComplete?.()
       }
 
@@ -124,6 +129,12 @@ export default function DropZone({
           </p>
         </div>
       </label>
+
+      {statusMessage ? (
+        <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-700">
+          {statusMessage}
+        </div>
+      ) : null}
 
       {errorMessage ? (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

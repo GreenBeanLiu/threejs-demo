@@ -217,6 +217,15 @@ export default function ControlPanel({
           </p>
         </div>
       )}
+
+      <SectionTitle>Quick Tips</SectionTitle>
+      <div className="rounded-2xl bg-[var(--chip-bg)] px-4 py-4 text-xs leading-5 text-[var(--sea-ink-soft)]">
+        <ul className="space-y-2">
+          <li>• Use <span className="font-medium text-[var(--sea-ink)]">Fit model</span> after switching files.</li>
+          <li>• Try different lighting presets to review reflective packaging surfaces.</li>
+          <li>• Export a screenshot once the viewer status says the model is ready.</li>
+        </ul>
+      </div>
     </div>
   )
 }

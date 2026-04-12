@@ -120,7 +120,7 @@ export default function HistoryPanel({ onSelect, refreshKey = 0, selectedPath = 
           Refresh
         </button>
       </div>
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-2">
         {records.map((record) => {
           const isActive = selectedPath === record.path
 
@@ -128,17 +128,22 @@ export default function HistoryPanel({ onSelect, refreshKey = 0, selectedPath = 
           <button
             key={record.id}
             onClick={() => onSelect(record.path, record.name)}
-            className={`island-shell flex items-center gap-3 rounded-xl px-4 py-2.5 text-left transition hover:ring-1 hover:ring-[#56c6be] ${
-              isActive ? 'ring-1 ring-[#56c6be] bg-[rgba(79,184,178,0.08)]' : ''
+            className={`island-shell flex items-center gap-3 rounded-2xl px-4 py-3 text-left transition hover:-translate-y-0.5 hover:ring-1 hover:ring-[#56c6be] ${
+              isActive ? 'ring-1 ring-[#56c6be] bg-[rgba(79,184,178,0.08)] shadow-[0_16px_40px_rgba(45,157,143,0.12)]' : ''
             }`}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-5 w-5 shrink-0 text-[#56c6be]">
               <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
             </svg>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-[var(--sea-ink)]">{record.name}</p>
+              <div className="flex items-center justify-between gap-3">
+                <p className="truncate text-sm font-medium text-[var(--sea-ink)]">{record.name}</p>
+                <span className="shrink-0 rounded-full bg-[var(--chip-bg)] px-2 py-0.5 text-[10px] font-medium text-[var(--sea-ink-soft)]">
+                  {formatSize(record.size)}
+                </span>
+              </div>
               <p className="text-xs text-[var(--sea-ink-soft)]">
-                {formatSize(record.size)} · {timeAgo(record.uploadedAt)}
+                Updated {timeAgo(record.uploadedAt)}
               </p>
               {isActive ? (
                 <p className="mt-1 text-[11px] font-medium text-[#2d9d8f]">Currently open</p>

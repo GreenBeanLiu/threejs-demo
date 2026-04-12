@@ -81,7 +81,7 @@ describe('DropZone', () => {
     expect(onProcessing).toHaveBeenNthCalledWith(1, true)
     expect(onProcessing).toHaveBeenLastCalledWith(false)
     expect(onUploadComplete).toHaveBeenCalled()
-    expect(await screen.findByText('Model uploaded successfully.')).toBeTruthy()
+    expect(await screen.findByText('package.glb is ready in the viewer.')).toBeTruthy()
   })
 
   it('shows server upload errors', async () => {
