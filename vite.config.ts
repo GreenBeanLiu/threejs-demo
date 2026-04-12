@@ -7,6 +7,8 @@ import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import viteReact from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
+const allowedHosts = ['threejs-demo-production.up.railway.app']
+
 const config = defineConfig({
   plugins: [
     devtools(),
@@ -15,6 +17,12 @@ const config = defineConfig({
     tanstackStart(),
     viteReact(),
   ],
+  server: {
+    allowedHosts,
+  },
+  preview: {
+    allowedHosts,
+  },
   build: {
     chunkSizeWarningLimit: 1200,
   },
