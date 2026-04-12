@@ -1,15 +1,41 @@
 # PackView
 
-A lightweight packaging model viewer built with TanStack Start, React Three Fiber, Cloudflare R2, LibSQL, and Better Auth.
+A packaging model viewer built with TanStack Start, React Three Fiber, Cloudflare R2, LibSQL, and Better Auth.
 
-It lets users:
-- sign in
+It supports:
+- sign up / sign in
 - upload `.glb` / `.gltf` files
-- view models in-browser with interactive controls
-- browse recent uploads
-- export screenshots
+- in-browser 3D preview
+- recent upload history
+- screenshot export
 
-This project started from a TanStack Start template, but it is now a real product-shaped app rather than a starter scaffold.
+This project started from a TanStack Start template, but it now has a working end-to-end product flow.
+
+---
+
+## Current status
+
+The main local flow is now working end to end:
+
+- auth works
+- upload works
+- model fetch works
+- history works
+- build works
+- tests pass
+
+Verified locally:
+1. register a user
+2. create a session
+3. upload a model to R2
+4. fetch the uploaded model back through `/api/model/:id`
+5. load recent history from `/api/history`
+
+What is still mostly "project-quality" rather than "production-ready":
+- viewer bundle size is still large
+- env validation can be improved
+- deployment docs are still thin
+- auth/config hardening should be reviewed before production
 
 ---
 
@@ -19,12 +45,11 @@ This project started from a TanStack Start template, but it is now a real produc
 - upload `.glb` and `.gltf` files
 - file type validation
 - file size validation (50MB limit)
-- upload error feedback
-- upload success feedback
+- upload feedback and error handling
 - recent upload history refresh after upload
 
 ### 3D viewer
-- interactive orbit view
+- orbit controls
 - fit-to-model
 - reset view
 - environment presets
@@ -32,19 +57,19 @@ This project started from a TanStack Start template, but it is now a real produc
 - background / exposure / light controls
 - model info panel
 - screenshot export
-- model loading progress UI
-- model loading error recovery
+- loading progress UI
+- error recovery UI
 
 ### History
 - recent uploaded models list
 - loading state
 - error state with retry
-- select a prior model directly from history
+- select a prior model from history
 
 ### Auth and persistence
-- Better Auth login/register flow
-- LibSQL model metadata storage
-- Cloudflare R2 object storage
+- Better Auth email/password auth
+- LibSQL local metadata storage
+- Cloudflare R2 object storage for model files
 
 ---
 
@@ -53,9 +78,9 @@ This project started from a TanStack Start template, but it is now a real produc
 - **App framework:** TanStack Start
 - **Routing:** TanStack Router
 - **UI:** React 19
-- **3D:** three.js, @react-three/fiber, @react-three/drei
+- **3D:** three.js, `@react-three/fiber`, `@react-three/drei`
 - **Auth:** Better Auth
-- **Database:** LibSQL
+- **Database:** LibSQL for app data, SQLite/Kysely adapter path for Better Auth
 - **Object storage:** Cloudflare R2 via AWS SDK
 - **Styling:** Tailwind CSS v4
 - **Tests:** Vitest + Testing Library
@@ -72,12 +97,12 @@ npm install
 
 ### 2. Configure environment variables
 
-Create a local env file if you do not already have one.
+Create `.env.local` in the project root.
 
-Recommended variables:
+Minimal working example:
 
-```bash
-BETTER_AUTH_SECRET=packview-dev-secret-change-in-prod
+```env
+BETTER_AUTH_SECRET=replace-with-a-random-string-at-least-32-chars
 BETTER_AUTH_URL=http://localhost:3000
 
 R2_ACCOUNT_ID=
@@ -91,6 +116,11 @@ GITHUB_CLIENT_ID=
 GITHUB_CLIENT_SECRET=
 ```
 
+Notes:
+- email/password auth works without Google/GitHub credentials
+- upload requires all four R2 variables
+- `.env.local` is ignored by git via `*.local`
+
 ### 3. Start the app
 
 ```bash
@@ -103,36 +133,59 @@ Default local URL:
 http://localhost:3000
 ```
 
+### 4. Useful checks
+
+Run tests:
+
+```bash
+npm run test
+```
+
+Run production build:
+
+```bash
+npm run build
+```
+
 ---
 
 ## Environment notes
 
 ### Better Auth
-This project currently uses a development fallback secret and base URL in code:
 
-- `BETTER_AUTH_SECRET || 'packview-dev-secret-change-in-prod'`
-- `BETTER_AUTH_URL || 'http://localhost:3000'`
+Local development currently expects:
+- `BETTER_AUTH_SECRET`
+- `BETTER_AUTH_URL=http://localhost:3000`
 
-That is convenient for local development, but you should set real values in production.
+If you do not set a secret, the app may still run in development, but you should always set a real secret for any serious environment.
+
+Auth uses:
+- Better Auth React client on the frontend
+- TanStack Start server routes under `/api/auth/*`
+- SQLite + Kysely adapter wiring for auth tables
 
 ### Database
-The app uses LibSQL with a simple environment-aware path strategy:
 
+The app uses an environment-aware local database path strategy:
 - local dev: `file:packview.db`
 - production fallback: `file:/tmp/packview.db`
 - if `/uploads` exists: `file:/uploads/packview.db`
 
-The app also runs a simple startup migration for the `models` table.
+Startup migration now creates:
+- Better Auth base tables: `user`, `session`, `account`, `verification`
+- app table: `models`
+
+`packview.db` is ignored by git.
 
 ### Cloudflare R2
-Uploads require these variables:
 
+Uploads require:
 - `R2_ACCOUNT_ID`
 - `R2_ACCESS_KEY_ID`
 - `R2_SECRET_ACCESS_KEY`
 - `R2_BUCKET`
 
-If these are missing, upload requests will fail with a configuration error message.
+If these are missing, upload requests fail with a configuration error.
 
 ---
 
@@ -145,101 +198,98 @@ npm run preview
 npm run test
 ```
 
-### Build for production
-
-```bash
-npm run build
-```
-
-### Run tests
-
-```bash
-npm run test
-```
-
-Current test coverage includes:
-- `HistoryPanel`
-- `ViewerErrorBoundary`
-- `DropZone`
-- index route feedback / recovery flow
-
 ---
 
 ## API routes
 
-This project uses TanStack Start API file routes.
+This project uses TanStack Start file routes for server endpoints.
 
-Current internal API surface includes:
+Current API surface:
+- `/api/auth/*`
 - `/api/upload`
 - `/api/history`
 - `/api/model/:id`
-- Better Auth handler routes
 
-The route files are named with a leading `-` so TanStack route scanning does not treat them like page routes.
+Notes:
+- API routes now use the current TanStack Start server route style
+- older `createAPIFileRoute`-style files were removed
 
 ---
 
 ## Current product behavior
 
 ### Upload flow
-1. user selects a `.glb` / `.gltf` file
-2. file is validated client-side
-3. upload is sent to `/api/upload`
-4. file is stored in R2
-5. metadata is stored in LibSQL
-6. viewer opens the uploaded model
-7. recent history refreshes
+1. user signs in
+2. user selects a `.glb` / `.gltf` file
+3. client validates file type and size
+4. upload is sent to `/api/upload`
+5. file is stored in R2
+6. metadata is stored in local DB
+7. viewer opens the uploaded model
+8. recent history refreshes
 
 ### Viewer flow
-- the landing page stays relatively light
-- viewer modules are lazy-loaded when a model is opened
-- the app shows loading progress, error states, screenshot feedback, and recovery actions
+- landing page stays lighter because viewer code is lazy-loaded
+- model viewer loads only when needed
+- viewer exposes progress, screenshot feedback, and recovery UI
+
+### Auth flow
+- sign-up creates user + session
+- sign-in returns session cookie
+- `/api/history` requires an authenticated session
+- direct curl tests for sign-in should include an `Origin` header, or Better Auth may reject them with `MISSING_OR_NULL_ORIGIN`
 
 ---
 
 ## Performance notes
 
-A first round of lazy loading has already been applied:
+A first round of lazy loading is already in place:
 - viewer shell is lazy-loaded
-- canvas runtime is isolated behind a lazy boundary
-- control panel and model viewer are split out
+- canvas runtime is behind a lazy boundary
+- control panel and viewer code are split
 
-This significantly reduces landing-page cost, but the 3D runtime itself is still heavy once the viewer is opened. Further optimizations should focus on:
-- deeper viewer-only splitting
-- reducing 3D dependency cost where possible
-- deferring optional viewer features
+This helps landing-page performance, but the 3D runtime is still heavy after opening a model.
+
+Good next targets:
+- deeper viewer-only code splitting
+- optional feature deferral
+- reducing heavy 3D dependencies where possible
 
 ---
 
 ## Testing notes
 
-Vitest runs in `jsdom` mode via `vitest.config.ts`.
+Current unit/integration coverage includes:
+- `HistoryPanel`
+- `ViewerErrorBoundary`
+- `DropZone`
+- index route feedback / recovery behavior
 
-The current tests focus on product behavior rather than trying to run the full real three.js stack in unit tests. For viewer-heavy flows, page tests mock the viewer shell and verify user-facing behavior instead.
+Tests currently verify product behavior rather than trying to fully execute the real three.js runtime in unit tests.
 
 ---
 
 ## Production cautions
 
-Before production, review these items carefully:
-- replace development auth secret
+Before production, review these carefully:
+- replace dev auth secrets
 - confirm `BETTER_AUTH_URL`
 - review trusted origins in `src/lib/auth.ts`
-- verify R2 credentials and bucket policy
-- verify whether model files should be public or access-controlled
-- review LibSQL file path strategy for your deployment target
+- verify R2 credentials and bucket permissions
+- decide whether model files should be public, signed, or session-protected
+- review local DB path strategy for your actual deployment target
+- consider stronger env validation on boot
 
 ---
 
 ## Suggested next steps
 
-If you continue development, the highest-value next items are:
-
-1. improve README / deployment docs further
-2. expand automated tests
-3. tighten auth and environment validation
-4. refine viewer performance
-5. add packaging-specific features like compare, annotation, or better export presets
+High-value follow-up work:
+1. tighten deployment / environment docs further
+2. expand automated tests around auth + upload
+3. improve viewer performance
+4. improve env validation and startup errors
+5. add packaging-specific features like compare, annotation, and export presets
 
 ---
 
