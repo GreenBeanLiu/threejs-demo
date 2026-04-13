@@ -28,9 +28,15 @@ interface HistoryPanelProps {
   onSelect: (url: string, name: string, isProcessing?: boolean) => void
   refreshKey?: number
   selectedPath?: string | null
+  signedIn?: boolean
 }
 
-export default function HistoryPanel({ onSelect, refreshKey = 0, selectedPath = null }: HistoryPanelProps) {
+export default function HistoryPanel({
+  onSelect,
+  refreshKey = 0,
+  selectedPath = null,
+  signedIn = false,
+}: HistoryPanelProps) {
   const [records, setRecords] = useState<UploadRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
@@ -99,6 +105,31 @@ export default function HistoryPanel({ onSelect, refreshKey = 0, selectedPath = 
   }
 
   if (records.length === 0) {
+    if (!signedIn) {
+      return (
+        <div className="w-full max-w-xl rounded-2xl border border-dashed border-[var(--line)] bg-[var(--chip-bg)] px-4 py-4 text-sm text-[var(--sea-ink-soft)]">
+          <p className="font-medium text-[var(--sea-ink)]">Sign in to keep upload history</p>
+          <p className="mt-1 leading-6">
+            You can preview models immediately, but signing in lets you keep a reusable list of recent uploads.
+          </p>
+          <div className="mt-3 flex gap-2">
+            <a
+              href="/login"
+              className="rounded-full border border-[var(--chip-line)] bg-[var(--header-bg)] px-3 py-1.5 text-xs font-medium text-[var(--sea-ink-soft)] transition hover:border-[#56c6be] hover:text-[var(--sea-ink)]"
+            >
+              Sign in
+            </a>
+            <a
+              href="/register"
+              className="rounded-full bg-[linear-gradient(135deg,#56c6be,#2d9d8f)] px-3 py-1.5 text-xs font-medium text-white shadow-sm transition hover:opacity-95"
+            >
+              Create account
+            </a>
+          </div>
+        </div>
+      )
+    }
+
     return (
       <div className="w-full max-w-xl rounded-2xl border border-dashed border-[var(--line)] bg-[var(--chip-bg)] px-4 py-4 text-sm text-[var(--sea-ink-soft)]">
         No recent models yet. Your latest uploads will appear here for quick re-opening.

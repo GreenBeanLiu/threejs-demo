@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router'
 import { signOut, useSession } from '../lib/auth-client'
 import {
   isSupportedModelFile,
@@ -23,7 +24,22 @@ function SessionControls() {
   }
 
   if (!session?.user) {
-    return null
+    return (
+      <div className="flex items-center gap-2">
+        <Link
+          to="/login"
+          className="rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-3 py-1.5 text-xs font-medium text-[var(--sea-ink-soft)] transition hover:border-[#56c6be] hover:text-[var(--sea-ink)]"
+        >
+          Sign in
+        </Link>
+        <Link
+          to="/register"
+          className="rounded-full bg-[linear-gradient(135deg,#56c6be,#2d9d8f)] px-3 py-1.5 text-xs font-medium text-white shadow-sm transition hover:opacity-95"
+        >
+          Create account
+        </Link>
+      </div>
+    )
   }
 
   return (

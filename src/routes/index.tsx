@@ -302,7 +302,12 @@ function ViewerPage() {
                   Re-open recently reviewed models and keep your packaging review flow moving.
                 </p>
                 <div className="mt-4">
-                  <HistoryPanel onSelect={handleFile} refreshKey={historyRefreshKey} selectedPath={modelUrl} />
+                  <HistoryPanel
+                    onSelect={handleFile}
+                    refreshKey={historyRefreshKey}
+                    selectedPath={modelUrl}
+                    signedIn={!!session?.user}
+                  />
                 </div>
               </div>
 
