@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import {
   Bounds,
@@ -10,41 +10,28 @@ import {
   useProgress,
 } from '@react-three/drei'
 import * as THREE from 'three'
+import { collectModelInfo } from './model-viewer/meshInfo'
+import { loadModelByFormat } from './model-viewer/loaders'
+import { applyRenderModes } from './model-viewer/renderModes'
+import type {
+  ModelInfo,
+  ViewerCommandState,
+  ViewerProgressState,
+  ViewerSettings,
+} from './model-viewer/types'
 
-export interface ModelInfo {
-  meshCount: number
-  vertexCount: number
-  materialCount: number
-  textureCount: number
-  triangleCount: number
+export type { ModelInfo, ViewerCommandState, ViewerProgressState, ViewerSettings }
+
+function getFormat(url: string) {
+  const cleanUrl = url.split('?')[0].toLowerCase()
+  if (cleanUrl.endsWith('.glb')) return 'glb'
+  if (cleanUrl.endsWith('.gltf')) return 'gltf'
+  if (cleanUrl.endsWith('.obj')) return 'obj'
+  if (cleanUrl.endsWith('.stl')) return 'stl'
+  return 'unknown'
 }
 
-export interface ViewerSettings {
-  environment: 'city' | 'studio' | 'sunset' | 'warehouse' | 'forest' | 'night'
-  wireframe: boolean
-  autoRotate: boolean
-  autoRotateSpeed: number
-  showGrid: boolean
-  showAxes: boolean
-  exposure: number
-  background: string
-  lightIntensity: number
-}
-
-export interface ViewerCommandState {
-  fitVersion: number
-  resetVersion: number
-}
-
-export interface ViewerProgressState {
-  active: boolean
-  progress: number
-  loaded: number
-  total: number
-  item: string
-}
-
-function Model({
+function LoadedScene({
   url,
   settings,
   onInfo,
@@ -63,80 +50,75 @@ function Model({
   fitVersion: number
   resetVersion: number
 }) {
-  const { scene } = useGLTF(url)
+  const format = getFormat(url)
+  const gltf = format === 'glb' || format === 'gltf' ? useGLTF(url) : null
+  const [externalRoot, setExternalRoot] = useState<THREE.Group | null>(null)
   const bounds = useBounds()
   const groupRef = useRef<THREE.Group>(null)
   const reportedUrlRef = useRef<string | null>(null)
 
+  const root = useMemo(() => {
+    if (gltf?.scene) {
+      return gltf.scene.clone(true)
+    }
+    return externalRoot
+  }, [externalRoot, gltf?.scene])
+
   useEffect(() => {
-    if (!scene || reportedUrlRef.current === url) return
+    if (format === 'glb' || format === 'gltf') {
+      return
+    }
+
+    let disposed = false
+    loadModelByFormat(url)
+      .then((result) => {
+        if (!disposed) {
+          setExternalRoot(result.root)
+        }
+      })
+      .catch((error) => {
+        console.error(error)
+      })
+
+    return () => {
+      disposed = true
+    }
+  }, [format, url])
+
+  useEffect(() => {
+    if (!root || reportedUrlRef.current === url) return
     reportedUrlRef.current = url
 
-    let meshCount = 0
-    let vertexCount = 0
-    let triangleCount = 0
-    const materials = new Set<THREE.Material>()
-    const textures = new Set<THREE.Texture>()
+    const info = collectModelInfo(root, format)
+    onInfo(info)
 
-    scene.traverse((obj) => {
-      if (obj instanceof THREE.Mesh) {
-        meshCount++
-        const geo = obj.geometry as THREE.BufferGeometry
-        const pos = geo.attributes.position
-        if (pos) vertexCount += pos.count
-        const idx = geo.index
-        if (idx) triangleCount += idx.count / 3
-        else if (pos) triangleCount += pos.count / 3
-        const mats = Array.isArray(obj.material) ? obj.material : [obj.material]
-        mats.forEach((material) => {
-          materials.add(material)
-          const stdMat = material as THREE.MeshStandardMaterial
-          if (stdMat.map) textures.add(stdMat.map)
-          if (stdMat.normalMap) textures.add(stdMat.normalMap)
-          if (stdMat.roughnessMap) textures.add(stdMat.roughnessMap)
-          if (stdMat.metalnessMap) textures.add(stdMat.metalnessMap)
-          if (stdMat.emissiveMap) textures.add(stdMat.emissiveMap)
-        })
-      }
-    })
-
-    onInfo({
-      meshCount,
-      vertexCount: Math.round(vertexCount),
-      materialCount: materials.size,
-      textureCount: textures.size,
-      triangleCount: Math.round(triangleCount),
-    })
-
-    const box = new THREE.Box3().setFromObject(scene)
+    const box = new THREE.Box3().setFromObject(root)
     onBottomY(box.min.y)
     groupRef.current?.rotation.set(0, 0, 0)
-    bounds.refresh(scene).fit()
-  }, [scene, bounds, onInfo, onBottomY, url])
+    bounds.refresh(root).fit()
+  }, [root, url, bounds, onInfo, onBottomY, format])
 
   useEffect(() => {
-    scene.traverse((obj) => {
-      if (obj instanceof THREE.Mesh) {
-        const mats = Array.isArray(obj.material) ? obj.material : [obj.material]
-        mats.forEach((material) => {
-          ;(material as THREE.MeshStandardMaterial).wireframe = settings.wireframe
-        })
-      }
+    if (!root) return
+    applyRenderModes(root, {
+      wireframe: settings.wireframe,
+      whiteModel: settings.whiteModel,
+      flatShading: settings.flatShading,
     })
-  }, [scene, settings.wireframe])
+  }, [root, settings.wireframe, settings.whiteModel, settings.flatShading])
 
   useEffect(() => {
-    if (!scene) return
-    bounds.refresh(scene).fit()
-  }, [bounds, fitVersion, scene])
+    if (!root) return
+    bounds.refresh(root).fit()
+  }, [bounds, fitVersion, root])
 
   useEffect(() => {
-    if (!scene) return
+    if (!root) return
     if (groupRef.current) {
       groupRef.current.rotation.set(0, 0, 0)
     }
-    bounds.refresh(scene).fit()
-  }, [bounds, resetVersion, scene])
+    bounds.refresh(root).fit()
+  }, [bounds, resetVersion, root])
 
   useFrame((_, delta) => {
     if (autoRotate && groupRef.current) {
@@ -144,9 +126,11 @@ function Model({
     }
   })
 
+  if (!root) return null
+
   return (
     <group ref={groupRef}>
-      <primitive object={scene} />
+      <primitive object={root} />
     </group>
   )
 }
@@ -189,7 +173,7 @@ export default function ModelViewer({
       <directionalLight position={[5, 8, 5]} intensity={settings.lightIntensity} castShadow />
       <Environment preset={settings.environment} />
       <Bounds fit clip observe margin={1.2}>
-        <Model
+        <LoadedScene
           url={url}
           settings={settings}
           onInfo={onInfo}

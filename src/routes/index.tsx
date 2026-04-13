@@ -18,6 +18,8 @@ export const Route = createFileRoute('/')({ component: ViewerPage })
 const DEFAULT_SETTINGS: ViewerSettings = {
   environment: 'studio',
   wireframe: false,
+  whiteModel: false,
+  flatShading: false,
   autoRotate: true,
   autoRotateSpeed: 0.8,
   showGrid: false,

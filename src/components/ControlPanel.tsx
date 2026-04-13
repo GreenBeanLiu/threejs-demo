@@ -149,6 +149,16 @@ export default function ControlPanel({
         onChange={(value) => onChange({ wireframe: value })}
       />
       <Toggle
+        label="White Model"
+        checked={settings.whiteModel}
+        onChange={(value) => onChange({ whiteModel: value })}
+      />
+      <Toggle
+        label="Flat Shading"
+        checked={settings.flatShading}
+        onChange={(value) => onChange({ flatShading: value })}
+      />
+      <Toggle
         label="Ground Grid"
         checked={settings.showGrid}
         onChange={(value) => onChange({ showGrid: value })}
@@ -197,6 +207,7 @@ export default function ControlPanel({
       {modelInfo ? (
         <div className="grid grid-cols-2 gap-1.5">
           {([
+            ['Format', modelInfo.format.toUpperCase()],
             ['Meshes', modelInfo.meshCount],
             ['Materials', modelInfo.materialCount],
             ['Textures', modelInfo.textureCount],
