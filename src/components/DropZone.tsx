@@ -11,6 +11,7 @@ interface DropZoneProps {
   onProcessing?: (isProcessing: boolean) => void
   onUploadComplete?: () => void
   signedIn?: boolean
+  previewError?: string
 }
 
 export default function DropZone({
@@ -18,6 +19,7 @@ export default function DropZone({
   onProcessing,
   onUploadComplete,
   signedIn = false,
+  previewError = '',
 }: DropZoneProps) {
   const [dragging, setDragging] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
@@ -32,6 +34,17 @@ export default function DropZone({
     const timeoutId = window.setTimeout(() => setSuccessMessage(''), 2500)
     return () => window.clearTimeout(timeoutId)
   }, [successMessage])
+
+  useEffect(() => {
+    if (!previewError) {
+      return
+    }
+
+    setSuccessMessage('')
+    setStatusMessage('')
+    setErrorMessage('Upload finished, but the model could not be previewed. Please try another file.')
+    onProcessing?.(false)
+  }, [onProcessing, previewError])
 
   const handleFile = useCallback(
     async (file: File) => {

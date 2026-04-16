@@ -291,6 +291,7 @@ function ViewerPage() {
                     onProcessing={setProcessing}
                     onUploadComplete={refreshHistory}
                     signedIn={!!session?.user}
+                    previewError={viewerError}
                   />
                   {loading && <LoadingOverlay message={loadingMessage} progress={viewerProgress} />}
                 </div>
