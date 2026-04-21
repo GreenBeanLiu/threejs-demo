@@ -335,51 +335,56 @@ function ViewerPage() {
           </div>
         </div>
       ) : (
-        <div className="flex flex-1 overflow-hidden pt-14">
-          <div className="pointer-events-none absolute left-4 right-[260px] top-[72px] z-20 hidden sm:block">
-            <div className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--line)] bg-[rgba(255,255,255,0.78)] px-4 py-3 shadow-lg backdrop-blur dark:bg-[rgba(19,25,31,0.78)]">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-[var(--sea-ink)]">
-                  {fileName ?? 'Current model'}
-                </p>
-                <p className="text-xs text-[var(--sea-ink-soft)]">
-                  {processing
-                    ? 'Uploading model and preparing viewer…'
-                    : loading
-                      ? loadingMessage
-                      : viewerError
-                        ? 'Viewer needs attention'
-                        : 'Model ready for review'}
-                </p>
+        <div className="flex flex-1 overflow-hidden bg-[var(--bg)] pt-14">
+          <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+            <div className="border-b border-[var(--line)] bg-[rgba(255,255,255,0.86)] px-4 py-3 backdrop-blur dark:bg-[rgba(19,25,31,0.82)] sm:px-5">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-[var(--sea-ink)]">
+                    {fileName ?? 'Current model'}
+                  </p>
+                  <p className="mt-0.5 text-xs text-[var(--sea-ink-soft)]">
+                    {processing
+                      ? 'Uploading model and preparing viewer…'
+                      : loading
+                        ? loadingMessage
+                        : viewerError
+                          ? 'Viewer needs attention'
+                          : 'Model ready for review'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={resetToLanding}
+                  className="shrink-0 rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-3 py-1.5 text-xs font-medium text-[var(--sea-ink-soft)] transition hover:border-[#56c6be] hover:text-[var(--sea-ink)]"
+                >
+                  Back
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={resetToLanding}
-                className="pointer-events-auto rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-3 py-1.5 text-xs font-medium text-[var(--sea-ink-soft)] transition hover:border-[#56c6be] hover:text-[var(--sea-ink)]"
-              >
-                Back
-              </button>
+            </div>
+
+            <div className="relative min-h-0 flex-1">
+              <Suspense fallback={<div className="flex h-full items-center justify-center text-sm text-[var(--sea-ink-soft)]">Loading viewer…</div>}>
+                <ViewerShell
+                  canvasRef={canvasRef}
+                  effectiveModelUrl={effectiveModelUrl}
+                  settings={settings}
+                  modelInfo={modelInfo}
+                  fileName={fileName}
+                  viewerCommands={viewerCommands}
+                  onViewerError={setViewerError}
+                  onViewerProgress={handleViewerProgress}
+                  onSettingsChange={patchSettings}
+                  onModelInfo={setModelInfo}
+                  onFitToModel={handleFitToModel}
+                  onResetView={handleResetView}
+                  onCreated={() => setLoading(false)}
+                />
+              </Suspense>
+
+              {loading && <LoadingOverlay message={loadingMessage} progress={viewerProgress} />}
             </div>
           </div>
-          <Suspense fallback={<div className="flex flex-1 items-center justify-center text-sm text-[var(--sea-ink-soft)]">Loading viewer…</div>}>
-            <ViewerShell
-              canvasRef={canvasRef}
-              effectiveModelUrl={effectiveModelUrl}
-              settings={settings}
-              modelInfo={modelInfo}
-              fileName={fileName}
-              viewerCommands={viewerCommands}
-              onViewerError={setViewerError}
-              onViewerProgress={handleViewerProgress}
-              onSettingsChange={patchSettings}
-              onModelInfo={setModelInfo}
-              onFitToModel={handleFitToModel}
-              onResetView={handleResetView}
-              onCreated={() => setLoading(false)}
-            />
-          </Suspense>
-
-          {loading && <LoadingOverlay message={loadingMessage} progress={viewerProgress} />}
 
           {viewerError ? (
             <div className="absolute left-4 top-4 z-30 max-w-md rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-lg">
