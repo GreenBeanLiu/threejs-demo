@@ -1,27 +1,41 @@
-import { createClient, type Client } from '@libsql/client'
-import { existsSync } from 'node:fs'
+import postgres, { type Sql } from 'postgres'
 
-const getDbPath = () => {
-  // 1. Check for Railway volume
-  if (existsSync('/uploads')) return 'file:/uploads/packview.db'
-  // 2. Production fallback to /tmp
-  if (process.env.NODE_ENV === 'production') return 'file:/tmp/packview.db'
-  // 3. Local development
-  return 'file:packview.db'
+function getDatabaseUrl() {
+  const value = process.env.DATABASE_URL?.trim()
+
+  if (!value) {
+    throw new Error('DATABASE_URL is not configured')
+  }
+
+  return value
 }
 
-let _db: Client | null = null
+let _db: Sql | null = null
 let _migrationPromise: Promise<void> | null = null
+
+function createDb() {
+  const url = getDatabaseUrl()
+  console.log('>>> Initializing PostgreSQL client')
+
+  return postgres(url, {
+    max: 1,
+    prepare: false,
+    ssl: url.includes('localhost') || url.includes('127.0.0.1') ? undefined : 'require',
+  })
+}
+
+function normalizeSql(sql: string) {
+  let index = 0
+  return sql.replace(/\?/g, () => `$${++index}`)
+}
 
 function ensureMigrated() {
   if (!_db) {
-    const url = getDbPath()
-    console.log(`>>> Initializing LibSQL client at: ${url}`)
-    _db = createClient({ url })
+    _db = createDb()
   }
 
   if (!_migrationPromise) {
-    _migrationPromise = migrate(_db).catch(err => {
+    _migrationPromise = migrate(_db).catch((err) => {
       console.error('>>> Migration failed:', err)
       throw err
     })
@@ -30,78 +44,92 @@ function ensureMigrated() {
   return _migrationPromise
 }
 
-export function getDb(): Client {
+export interface ExecuteResult<T = Record<string, unknown>> {
+  rows: T[]
+}
+
+export interface DbClient {
+  execute<T = Record<string, unknown>>(input: { sql: string; args?: unknown[] }): Promise<ExecuteResult<T>>
+  sql: Sql
+}
+
+export function getDb(): DbClient {
+  ensureMigrated()
+
+  return {
+    sql: _db!,
+    async execute<T = Record<string, unknown>>({ sql, args = [] }: { sql: string; args?: unknown[] }) {
+      const rows = await _db!.unsafe<T[]>(normalizeSql(sql), args)
+      return { rows }
+    },
+  }
+}
+
+export function getAuthDb(): Sql {
   ensureMigrated()
   return _db!
 }
 
-export function getAuthDb(): Client {
-  ensureMigrated()
-  return _db!
-}
-
-async function migrate(db: Client) {
+async function migrate(db: Sql) {
   try {
-    await db.executeMultiple(`
-      CREATE TABLE IF NOT EXISTS user (
+    await db.unsafe(`
+      CREATE TABLE IF NOT EXISTS "user" (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         email TEXT NOT NULL UNIQUE,
-        emailVerified INTEGER NOT NULL,
+        "emailVerified" BOOLEAN NOT NULL,
         image TEXT,
-        createdAt TEXT NOT NULL,
-        updatedAt TEXT NOT NULL
+        "createdAt" TIMESTAMPTZ NOT NULL,
+        "updatedAt" TIMESTAMPTZ NOT NULL
       );
 
       CREATE TABLE IF NOT EXISTS session (
         id TEXT PRIMARY KEY,
-        expiresAt TEXT NOT NULL,
+        "expiresAt" TIMESTAMPTZ NOT NULL,
         token TEXT NOT NULL UNIQUE,
-        createdAt TEXT NOT NULL,
-        updatedAt TEXT NOT NULL,
-        ipAddress TEXT,
-        userAgent TEXT,
-        userId TEXT NOT NULL,
-        FOREIGN KEY (userId) REFERENCES user(id) ON DELETE CASCADE
+        "createdAt" TIMESTAMPTZ NOT NULL,
+        "updatedAt" TIMESTAMPTZ NOT NULL,
+        "ipAddress" TEXT,
+        "userAgent" TEXT,
+        "userId" TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE
       );
       CREATE INDEX IF NOT EXISTS idx_session_token ON session(token);
-      CREATE INDEX IF NOT EXISTS idx_session_userId ON session(userId);
+      CREATE INDEX IF NOT EXISTS idx_session_userid ON session("userId");
 
       CREATE TABLE IF NOT EXISTS account (
         id TEXT PRIMARY KEY,
-        accountId TEXT NOT NULL,
-        providerId TEXT NOT NULL,
-        userId TEXT NOT NULL,
-        accessToken TEXT,
-        refreshToken TEXT,
-        idToken TEXT,
-        accessTokenExpiresAt TEXT,
-        refreshTokenExpiresAt TEXT,
+        "accountId" TEXT NOT NULL,
+        "providerId" TEXT NOT NULL,
+        "userId" TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+        "accessToken" TEXT,
+        "refreshToken" TEXT,
+        "idToken" TEXT,
+        "accessTokenExpiresAt" TIMESTAMPTZ,
+        "refreshTokenExpiresAt" TIMESTAMPTZ,
         scope TEXT,
         password TEXT,
-        createdAt TEXT NOT NULL,
-        updatedAt TEXT NOT NULL,
-        FOREIGN KEY (userId) REFERENCES user(id) ON DELETE CASCADE
+        "createdAt" TIMESTAMPTZ NOT NULL,
+        "updatedAt" TIMESTAMPTZ NOT NULL
       );
-      CREATE INDEX IF NOT EXISTS idx_account_userId ON account(userId);
+      CREATE INDEX IF NOT EXISTS idx_account_userid ON account("userId");
 
       CREATE TABLE IF NOT EXISTS verification (
         id TEXT PRIMARY KEY,
         identifier TEXT NOT NULL,
         value TEXT NOT NULL,
-        expiresAt TEXT NOT NULL,
-        createdAt TEXT NOT NULL,
-        updatedAt TEXT NOT NULL
+        "expiresAt" TIMESTAMPTZ NOT NULL,
+        "createdAt" TIMESTAMPTZ NOT NULL,
+        "updatedAt" TIMESTAMPTZ NOT NULL
       );
       CREATE INDEX IF NOT EXISTS idx_verification_identifier ON verification(identifier);
 
       CREATE TABLE IF NOT EXISTS models (
-        id          TEXT PRIMARY KEY,
-        user_id     TEXT NOT NULL,
-        name        TEXT NOT NULL,
-        size        INTEGER NOT NULL,
-        r2_key      TEXT NOT NULL,
-        uploaded_at TEXT NOT NULL DEFAULT (datetime('now'))
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        size BIGINT NOT NULL,
+        r2_key TEXT NOT NULL,
+        uploaded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
       CREATE INDEX IF NOT EXISTS idx_models_user ON models(user_id, uploaded_at DESC);
     `)

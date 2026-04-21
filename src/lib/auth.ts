@@ -1,13 +1,13 @@
 import { betterAuth } from 'better-auth'
 import { kyselyAdapter } from '@better-auth/kysely-adapter'
 import { Kysely } from 'kysely'
-import { LibsqlDialect } from '@libsql/kysely-libsql'
+import { PostgresJSDialect } from 'kysely-postgres-js'
 import { getAuthDb } from './db'
 
 const authDb = getAuthDb()
 const kyselyDb = new Kysely({
-  dialect: new LibsqlDialect({
-    client: authDb,
+  dialect: new PostgresJSDialect({
+    postgres: authDb,
   }),
 })
 
@@ -29,7 +29,7 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
 
 export const auth = betterAuth({
   database: kyselyAdapter(kyselyDb, {
-    type: 'sqlite',
+    type: 'postgres',
   }),
   secret: process.env.BETTER_AUTH_SECRET || 'packview-dev-secret-change-in-prod',
   baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
