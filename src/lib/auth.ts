@@ -1,13 +1,13 @@
 import { betterAuth } from 'better-auth'
 import { kyselyAdapter } from '@better-auth/kysely-adapter'
-import { NodeSqliteDialect } from '@better-auth/kysely-adapter/node-sqlite-dialect'
 import { Kysely } from 'kysely'
+import { LibsqlDialect } from '@libsql/kysely-libsql'
 import { getAuthDb } from './db'
 
 const authDb = getAuthDb()
 const kyselyDb = new Kysely({
-  dialect: new NodeSqliteDialect({
-    database: authDb,
+  dialect: new LibsqlDialect({
+    client: authDb,
   }),
 })
 

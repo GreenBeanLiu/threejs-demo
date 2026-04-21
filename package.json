@@ -16,6 +16,7 @@
     "@aws-sdk/client-s3": "^3.1019.0",
     "@better-auth/kysely-adapter": "^1.5.6",
     "@libsql/client": "^0.17.2",
+    "@libsql/kysely-libsql": "^0.4.1",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
     "@tailwindcss/vite": "^4.1.18",

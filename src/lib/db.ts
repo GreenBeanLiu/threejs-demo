@@ -1,5 +1,4 @@
 import { createClient, type Client } from '@libsql/client'
-import { DatabaseSync } from 'node:sqlite'
 import { existsSync } from 'node:fs'
 
 const getDbPath = () => {
@@ -12,13 +11,7 @@ const getDbPath = () => {
 }
 
 let _db: Client | null = null
-let _authDb: DatabaseSync | null = null
 let _migrationPromise: Promise<void> | null = null
-
-function getSqliteFilePath() {
-  const url = getDbPath()
-  return url.replace(/^file:/, '')
-}
 
 function ensureMigrated() {
   if (!_db) {
@@ -42,16 +35,9 @@ export function getDb(): Client {
   return _db!
 }
 
-export function getAuthDb(): DatabaseSync {
+export function getAuthDb(): Client {
   ensureMigrated()
-
-  if (_authDb) return _authDb
-
-  const path = getSqliteFilePath()
-  console.log(`>>> Initializing auth sqlite at: ${path}`)
-  _authDb = new DatabaseSync(path)
-
-  return _authDb
+  return _db!
 }
 
 async function migrate(db: Client) {
