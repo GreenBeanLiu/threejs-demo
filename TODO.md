@@ -1,245 +1,164 @@
-# TODO - threejs-learn
+# TODO - PackView / threejs-learn
 
-## Project snapshot
+## Current product state
 
-This is no longer just a Three.js demo.
+PackView is no longer an early Three.js demo.
 
-It already has the shape of a real product:
+Current verified baseline:
+- Railway production is back online
+- Node server deployment is working
+- App/auth database moved to PostgreSQL
+- Better Auth email + Google sign-in works
+- Upload works
+- History works
+- Model fetch works
+- Viewer works with lighting / grid / axes / wireframe / screenshot
+- Wireframe now renders as line-only
+- Loading overlay is scoped to the viewer area instead of the whole page
 
-- 3D model upload
-- model viewer with orbit / environment / grid / axes / wireframe controls
-- screenshot export
-- upload history
-- auth pages
-- backend upload API
-- model history API
-- R2 storage
-- LibSQL persistence
-
-So the right next step is **not** “add more random Three.js tricks”.
-The right next step is turning this from a promising prototype into a clean, reliable app.
+So the next work should **not** be random polish or more one-off Three.js toggles.
+The next work should be closing the most important product-shaped gaps in a deliberate order.
 
 ---
 
-## Highest priority
+## Highest priority now
 
-### 1. Fix project positioning and documentation
-- [ ] Rewrite `README.md` to match the actual product
-- [ ] Explain what the app does in one sentence
-  - [ ] upload GLB / GLTF models
-  - [ ] preview packaging models in browser
+### 1. Viewer workspace v1
+Goal: turn the current viewer from “a page with a canvas and settings” into a focused review workspace.
+
+#### Acceptance skeleton
+- [ ] Viewer uses a clear 3-part layout
+  - [ ] lightweight top toolbar
+  - [ ] dominant canvas stage
+  - [ ] tool-style right panel
+- [ ] Top toolbar is thin and utility-like
+  - [ ] file name
+  - [ ] concise status
+  - [ ] back action
+- [ ] Canvas is the visual main area
+- [ ] Loading / error / retry / screenshot feedback all belong to the canvas layer
+- [ ] Right panel feels like viewer tools, not a generic web form sidebar
+- [ ] Overall viewer feels like a workspace, not a landing-page extension
+
+#### Explicitly out of scope for v1
+- [ ] white model improvements
+- [ ] flat shading improvements
+- [ ] OBJ / STL support
+- [ ] deeper auth work
+- [ ] landing page redesign
+
+---
+
+### 2. Rewrite README to match the actual product
+- [ ] Explain PackView in one sentence
+- [ ] Describe the real current product surface
+  - [ ] upload GLB / GLTF
+  - [ ] review packaging models in browser
   - [ ] manage recent uploads
-- [ ] Document the current stack
+  - [ ] auth + history + screenshots
+- [ ] Document the real stack
   - [ ] TanStack Start
   - [ ] React Three Fiber / Drei
   - [ ] Better Auth
-  - [ ] LibSQL
+  - [ ] PostgreSQL
   - [ ] Cloudflare R2
 - [ ] Add local setup instructions
 - [ ] Add required environment variables
-- [ ] Add deployment notes
-
-### 2. Fix obvious server/runtime issues
-- [ ] Review `server.mjs` carefully
-- [ ] Remove duplicated `port`, `__dirname`, and `clientDir` declarations
-- [ ] Confirm the server file actually runs cleanly in its current form
-- [ ] Add a quick smoke test for production boot
-- [ ] Clean noisy debug logs or convert them into structured logs
-
-### 3. Make upload flow trustworthy
-- [ ] Add proper file validation on upload API
-  - [ ] allow only `.glb` and `.gltf`
-  - [ ] reject empty files
-  - [ ] add max file size limit
-- [ ] Return clear error messages for unsupported file types
-- [ ] Handle upload failure in the UI instead of silently ignoring it
-- [ ] Show upload state explicitly
-  - [ ] uploading
-  - [ ] success
-  - [ ] failed
-- [ ] If upload fails, decide whether local preview should remain visible or roll back
+- [ ] Add Railway deployment notes
 
 ---
 
-## Product improvements
-
-### 4. Improve model viewer experience
-- [ ] Add loading progress instead of only a generic loading overlay
-- [ ] Show parse/load errors when a model cannot be rendered
-- [ ] Add reset camera button
-- [ ] Add fit-to-model button
-- [ ] Add environment preset picker with labels users understand
-- [ ] Add background presets instead of raw color-only workflow
-- [ ] Improve screenshot UX
-  - [ ] show confirmation after save
-  - [ ] allow higher-resolution export
-
-### 5. Improve history panel
-- [ ] Add empty state copy
-- [ ] Add delete/remove history items
-- [ ] Add rename capability for uploaded models
-- [ ] Add search or filter if history grows
-- [ ] Add pagination or “load more” instead of hard limit 50
-- [ ] Show upload date in addition to relative time
-
-### 6. Improve landing/upload flow
-- [ ] Make first screen more obviously actionable
-- [ ] Explain supported formats and limits
-- [ ] Add sample model for users with no file ready
-- [ ] Add error state if user is not authenticated
-- [ ] Add success feedback after upload completes
+### 3. Clean backend/config assumptions after the Postgres migration
+- [ ] Remove stale LibSQL / SQLite wording from docs and comments
+- [ ] Review env handling for fail-fast behavior
+  - [ ] DATABASE_URL
+  - [ ] BETTER_AUTH_SECRET
+  - [ ] BETTER_AUTH_URL
+  - [ ] R2 variables
+- [ ] Reduce insecure development fallbacks before production hardening
+- [ ] Review trusted origins list and keep it minimal
 
 ---
 
-## Architecture and code quality
+## Next product closures after workspace v1
 
-### 7. Untangle “demo code” from “real app code”
-- [ ] Remove leftover template/demo language from the project
-- [ ] Rename files/components where naming still feels generic or transitional
-- [ ] Decide whether `threejs-learn` is still the right project name
-- [ ] Rename branding text if product name is really “Packaging 3D Viewer” or something else
-
-### 8. Clean up data/storage design
-- [ ] Decide whether model metadata should include:
-  - [ ] original filename
-n  - [ ] MIME type
-  - [ ] extension
-  - [ ] upload status
-  - [ ] thumbnail/screenshot path
-- [ ] Add created/updated timestamps in a more extensible schema
-- [ ] Add a proper migration path instead of implicit boot-time table creation only
-- [ ] Decide whether LibSQL local file storage is enough for deployment targets
-
-### 9. Improve backend boundaries
-- [ ] Move storage logic behind a dedicated service module
-- [ ] Move model repository/database queries behind a repository layer
-- [ ] Centralize auth/session checks for API routes
-- [ ] Standardize JSON error responses across all APIs
-- [ ] Add request logging around upload/history/model fetch APIs
-
-### 10. Security and environment hardening
-- [ ] Fail fast when required env vars are missing
-- [ ] Remove insecure development defaults before production
-  - [ ] `BETTER_AUTH_SECRET`
-  - [ ] fallback auth URLs
-- [ ] Verify trusted origins list is correct and minimal
-- [ ] Check whether uploaded files should be public or access-controlled
-- [ ] Review model delivery path for access control leaks
-
----
-
-## 3D-specific improvements
-
-### 11. Make model inspection more useful
-- [ ] Show richer model statistics
+### 4. Improve viewer inspection quality
+- [ ] white model should feel intentional, not just a color flip
+- [ ] flat shading should be visually clean
+- [ ] add richer model inspection info
   - [ ] node count
-  - [ ] mesh count
-  - [ ] materials
-  - [ ] textures
-  - [ ] triangle count
-- [ ] Detect oversized/heavy models and warn users
-- [ ] Add performance guidance for large assets
-- [ ] Add bounding box dimensions if meaningful for packaging work
-- [ ] Add model center / scale normalization if needed
+  - [ ] bounding box / dimensions if useful
+  - [ ] heavy model warnings
+- [ ] add better background presets instead of raw color-only workflow
 
-### 12. Improve rendering quality controls
-- [ ] Add tone mapping options
-- [ ] Add shadow quality toggle
-- [ ] Add antialias/performance toggle
-- [ ] Add light rig presets
-- [ ] Consider postprocessing only if it adds real value
+### 5. Improve model/history workflow
+- [ ] add upload date in history
+- [ ] add delete/remove history items
+- [ ] add rename capability for uploaded models
+- [ ] add search or filtering if history grows
 
-### 13. Support more realistic packaging workflows
-- [ ] Allow texture swap / label swap for packaging mockups
-- [ ] Add turntable animation export (GIF/video later)
-- [ ] Add annotation hotspots on models
-- [ ] Add variant comparison mode
-- [ ] Add side-by-side compare for two models
+### 6. Improve screenshot/export workflow
+- [ ] stronger confirmation after save
+- [ ] higher-resolution export option
+- [ ] transparent background export if valuable
 
 ---
 
-## Reliability and testing
+## Reliability and architecture follow-up
 
-### 14. Add tests for critical logic
-- [ ] Upload API validation tests
-- [ ] Auth-required API tests
-- [ ] History API tests
-- [ ] Model path resolution tests
-- [ ] Basic component tests for upload/history states
-- [ ] Smoke test that viewer page renders without model loaded
+### 7. Add tests around critical backend paths
+- [ ] upload API validation tests
+- [ ] auth-required API tests
+- [ ] history API tests
+- [ ] model path resolution tests
 
-### 15. Add error handling in the UI
-- [ ] Show upload errors in `DropZone`
-- [ ] Show history loading errors in `HistoryPanel`
-- [ ] Show model loading/rendering errors in viewer
-- [ ] Avoid silent failures where the UI simply does nothing
+### 8. Improve backend boundaries
+- [ ] move storage logic behind a dedicated service module
+- [ ] move model queries behind a repository layer
+- [ ] standardize JSON error responses
+- [ ] add request logging for upload/history/model fetch
 
-### 16. Add observability basics
-- [ ] Add structured logs for uploads
-- [ ] Log upload duration and file size
-- [ ] Log model fetch failures
-- [ ] Make it easy to trace one uploaded model end-to-end
+### 9. Add a real migration strategy
+- [ ] stop relying only on implicit boot-time table creation
+- [ ] define explicit schema evolution for auth + models tables
 
 ---
 
 ## Nice follow-up features
 
-### 17. User/account features
-- [ ] Add logout flow if missing in UI
-- [ ] Add profile/account page
-- [ ] Add per-user quotas or limits if needed
-- [ ] Add email verification / password reset if this becomes real product
-
-### 18. Collaboration features
-- [ ] Add shareable preview links
-- [ ] Add public/private model visibility control
-- [ ] Add team workspace support if product direction requires it
-
-### 19. Media/export features
-- [ ] Add poster image generation for each model
-- [ ] Add multiple screenshot presets
-- [ ] Add transparent background export
-- [ ] Add batch export if users compare variants often
+### 10. Packaging-specific features
+- [ ] texture / label swap workflows
+- [ ] annotation hotspots
+- [ ] compare mode for variants
+- [ ] shareable preview links
 
 ---
 
-## Suggested implementation order
+## Current recommended implementation order
 
-### Phase A - clean up the foundation
-- [ ] Rewrite README
-- [ ] Fix `server.mjs`
-- [ ] Add upload validation and proper UI error handling
-- [ ] Clean up env/config handling
+### Phase A
+- [ ] close Viewer workspace v1
 
-### Phase B - improve the core product
-- [ ] Better loading/error states
-- [ ] Better history panel
-- [ ] Camera reset / fit controls
-- [ ] Better screenshot/export flow
+### Phase B
+- [ ] rewrite README
+- [ ] clean env/config assumptions after Postgres migration
 
-### Phase C - make it robust
-- [ ] Add tests
-- [ ] Add structured logging
-- [ ] Refactor storage/db/auth boundaries
+### Phase C
+- [ ] improve inspection quality
+- [ ] improve history workflow
+- [ ] improve screenshot/export
 
-### Phase D - add product differentiation
-- [ ] Packaging-specific inspection tools
-- [ ] variant compare
-- [ ] share/export features
+### Phase D
+- [ ] add backend tests
+- [ ] add repository/service boundaries
+- [ ] add explicit migration strategy
 
 ---
 
-## My blunt take
+## Blunt take
 
-The most valuable next move is **not adding more Three.js effects**.
+The highest-value next closure is still:
 
-The best next step is:
+**Viewer workspace v1**
 
-**clean up the upload-to-view pipeline so it feels reliable, documented, and production-shaped.**
-
-If I were continuing this project, I would do these first:
-
-1. fix `server.mjs`
-2. rewrite `README.md`
-3. add upload validation + error handling
-4. add camera reset / fit + better loading states
+Not because the viewer is broken, but because it still does not yet feel like a focused professional review tool.
