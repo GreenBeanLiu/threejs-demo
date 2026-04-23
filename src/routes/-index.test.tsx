@@ -47,6 +47,8 @@ vi.mock('../components/ViewerShell', () => ({
         >
           emit-progress-done
         </button>
+        {props.stageOverlay}
+        {props.stageFooter}
       </div>
     )
   },

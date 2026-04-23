@@ -1,9 +1,14 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useSession } from '../lib/auth-client'
+import { lazy, Suspense, type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { signOut, useSession } from '../lib/auth-client'
 import DropZone from '../components/DropZone'
-import Header from '../components/Header'
 import HistoryPanel from '../components/HistoryPanel'
+import {
+  isSupportedModelFile,
+  MAX_UPLOAD_BYTES,
+  revokeObjectUrl,
+  uploadModelFile,
+} from '../lib/uploads'
 import type {
   ModelInfo,
   ViewerCommandState,
@@ -60,34 +65,82 @@ function LoadingOverlay({
   progress?: ViewerProgressState | null
 }) {
   return (
-    <div className="absolute inset-0 z-[100] flex items-center justify-center bg-[rgba(15,15,20,0.5)] backdrop-blur-sm">
-      <div className="flex min-w-[280px] flex-col items-center gap-4 rounded-2xl border border-[var(--line)] bg-[var(--header-bg)] p-8 shadow-2xl">
-        <div className="relative">
-          <div className="h-12 w-12 animate-spin rounded-full border-2 border-[var(--line)] border-t-[#56c6be]" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="h-2 w-2 animate-pulse rounded-full bg-[#56c6be]" />
+    <div className="absolute inset-0 z-[100] flex items-center justify-center bg-[rgba(6,10,14,0.36)] backdrop-blur-[2px]">
+      <div className="flex min-w-[260px] max-w-sm flex-col gap-4 rounded-2xl border border-white/10 bg-[rgba(10,16,22,0.88)] p-6 text-white shadow-2xl">
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <div className="h-10 w-10 animate-spin rounded-full border-2 border-white/12 border-t-[#56c6be]" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#56c6be]" />
+            </div>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-white">{message}</p>
+            <p className="mt-0.5 text-xs text-white/45">Viewer workspace is preparing the current asset.</p>
           </div>
         </div>
-        <div className="w-full text-center">
-          <p className="text-sm font-medium text-[var(--sea-ink)]">{message}</p>
-          {progress?.active ? (
-            <>
-              <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-[var(--line)]">
-                <div
-                  className="h-full rounded-full bg-[#56c6be] transition-all"
-                  style={{ width: `${Math.max(6, Math.min(100, progress.progress || 0))}%` }}
-                />
-              </div>
-              <p className="mt-2 text-xs text-[var(--sea-ink-soft)]">
-                {progress.total > 0
-                  ? `${progress.loaded}/${progress.total} assets`
-                  : 'Fetching model assets'}
-              </p>
-            </>
-          ) : null}
-        </div>
+        {progress?.active ? (
+          <>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full rounded-full bg-[#56c6be] transition-all"
+                style={{ width: `${Math.max(6, Math.min(100, progress.progress || 0))}%` }}
+              />
+            </div>
+            <p className="text-xs text-white/45">
+              {progress.total > 0
+                ? `${progress.loaded}/${progress.total} assets`
+                : 'Fetching model assets'}
+            </p>
+          </>
+        ) : null}
       </div>
     </div>
+  )
+}
+
+function StageNotice({
+  tone,
+  title,
+  description,
+  actions,
+}: {
+  tone: 'error' | 'success'
+  title: string
+  description?: string
+  actions?: React.ReactNode
+}) {
+  const styles =
+    tone === 'error'
+      ? 'border-red-400/25 bg-[rgba(67,14,18,0.88)] text-red-100'
+      : 'border-emerald-400/20 bg-[rgba(7,52,40,0.82)] text-emerald-100'
+
+  return (
+    <div className={`rounded-2xl border px-4 py-3 shadow-xl backdrop-blur ${styles}`}>
+      <p className="text-sm font-medium">{title}</p>
+      {description ? <p className="mt-1 text-xs leading-5 opacity-80">{description}</p> : null}
+      {actions ? <div className="mt-3 flex flex-wrap gap-2">{actions}</div> : null}
+    </div>
+  )
+}
+
+function FloatingActionButton({
+  onClick,
+  title,
+  children,
+}: {
+  onClick: () => void
+  title: string
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      className="flex h-10 w-10 items-center justify-center rounded-full border border-white/12 bg-[rgba(10,16,22,0.84)] shadow-md backdrop-blur-sm transition hover:border-[#56c6be]/50 hover:bg-[rgba(17,27,35,0.96)]"
+    >
+      {children}
+    </button>
   )
 }
 
@@ -188,6 +241,46 @@ function ViewerPage() {
     }
   }, [fileName])
 
+  const handleToolbarUpload = useCallback(
+    async (event: ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0]
+      event.target.value = ''
+
+      if (!file) {
+        return
+      }
+
+      if (!isSupportedModelFile(file) || file.size <= 0 || file.size > MAX_UPLOAD_BYTES) {
+        setScreenshotError('Only .glb and .gltf files up to 50MB are supported.')
+        return
+      }
+
+      setProcessing(true)
+
+      const localUrl = URL.createObjectURL(file)
+      handleFile(localUrl, file.name, true)
+
+      const uploadResult = await uploadModelFile(file)
+
+      if ('error' in uploadResult) {
+        revokeObjectUrl(localUrl)
+        setScreenshotError(uploadResult.error)
+      } else {
+        handleFile(uploadResult.path, file.name, false)
+        revokeObjectUrl(localUrl)
+        refreshHistory()
+      }
+
+      setProcessing(false)
+    },
+    [handleFile, refreshHistory],
+  )
+
+  const handleSignOut = useCallback(async () => {
+    await signOut()
+    window.location.href = '/login'
+  }, [])
+
   const handleFitToModel = useCallback(() => {
     setFitVersion((value) => value + 1)
   }, [])
@@ -230,18 +323,6 @@ function ViewerPage() {
 
   return (
     <div className="flex h-[calc(100vh-57px)] flex-col">
-      {modelUrl && (
-        <div className="absolute left-0 right-0 top-0 z-40">
-          <Header
-            fileName={fileName}
-            onUpload={handleFile}
-            hasModel={!!modelUrl}
-            onProcessing={setProcessing}
-            onUploadComplete={refreshHistory}
-          />
-        </div>
-      )}
-
       {!modelUrl ? (
         <div className="flex flex-1 flex-col overflow-y-auto px-6 py-8 lg:px-10">
           <div className="mx-auto grid w-full max-w-6xl gap-8 lg:grid-cols-[minmax(0,1.15fr)_360px] lg:items-start">
@@ -335,15 +416,22 @@ function ViewerPage() {
           </div>
         </div>
       ) : (
-        <div className="flex flex-1 overflow-hidden bg-[var(--bg)] pt-14">
-          <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-            <div className="border-b border-[var(--line)] bg-[rgba(255,255,255,0.86)] px-4 py-3 backdrop-blur dark:bg-[rgba(19,25,31,0.82)] sm:px-5">
-              <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-1 min-h-0 flex-col overflow-hidden bg-[#0a1116] text-white">
+          <div className="border-b border-white/8 bg-[rgba(8,13,18,0.94)] px-4 py-3 backdrop-blur sm:px-5">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex min-w-0 items-center gap-3">
+                <button
+                  type="button"
+                  onClick={resetToLanding}
+                  className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/72 transition hover:border-[#56c6be]/40 hover:text-white"
+                >
+                  Back
+                </button>
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-[var(--sea-ink)]">
+                  <p className="truncate text-sm font-semibold text-white">
                     {fileName ?? 'Current model'}
                   </p>
-                  <p className="mt-0.5 text-xs text-[var(--sea-ink-soft)]">
+                  <p className="mt-0.5 text-xs text-white/45">
                     {processing
                       ? 'Uploading model and preparing viewer…'
                       : loading
@@ -353,89 +441,126 @@ function ViewerPage() {
                           : 'Model ready for review'}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={resetToLanding}
-                  className="shrink-0 rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-3 py-1.5 text-xs font-medium text-[var(--sea-ink-soft)] transition hover:border-[#56c6be] hover:text-[var(--sea-ink)]"
-                >
-                  Back
-                </button>
               </div>
-            </div>
 
-            <div className="relative min-h-0 flex-1">
-              <Suspense fallback={<div className="flex h-full items-center justify-center text-sm text-[var(--sea-ink-soft)]">Loading viewer…</div>}>
-                <ViewerShell
-                  canvasRef={canvasRef}
-                  effectiveModelUrl={effectiveModelUrl}
-                  settings={settings}
-                  modelInfo={modelInfo}
-                  fileName={fileName}
-                  viewerCommands={viewerCommands}
-                  onViewerError={setViewerError}
-                  onViewerProgress={handleViewerProgress}
-                  onSettingsChange={patchSettings}
-                  onModelInfo={setModelInfo}
-                  onFitToModel={handleFitToModel}
-                  onResetView={handleResetView}
-                  onCreated={() => setLoading(false)}
-                />
-              </Suspense>
-
-              {loading && <LoadingOverlay message={loadingMessage} progress={viewerProgress} />}
+              <div className="flex items-center gap-2">
+                <label className="hidden cursor-pointer items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/70 transition hover:border-[#56c6be]/40 hover:text-white sm:flex">
+                  <input type="file" accept=".glb,.gltf" className="sr-only" onChange={handleToolbarUpload} />
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.5 w-3.5">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
+                  Replace model
+                </label>
+                {session?.user ? (
+                  <>
+                    <span className="hidden text-xs text-white/42 lg:inline">
+                      {session.user.name || session.user.email}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleSignOut}
+                      className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/68 transition hover:border-red-400/40 hover:text-red-200"
+                    >
+                      Sign out
+                    </button>
+                  </>
+                ) : null}
+              </div>
             </div>
           </div>
 
-          {viewerError ? (
-            <div className="absolute left-4 top-4 z-30 max-w-md rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-lg">
-              <p className="font-medium">{viewerError}</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={handleRetryModelLoad}
-                  className="rounded-full border border-red-300 px-3 py-1 text-xs font-medium transition hover:bg-red-100"
-                >
-                  Retry load
-                </button>
-                <button
-                  type="button"
-                  onClick={resetToLanding}
-                  className="rounded-full border border-[var(--chip-line)] bg-white px-3 py-1 text-xs font-medium text-[var(--sea-ink)] transition hover:bg-[var(--chip-bg)]"
-                >
-                  Back to upload
-                </button>
-              </div>
-            </div>
-          ) : null}
+          <div className="min-h-0 flex-1 p-3 sm:p-4">
+            <Suspense fallback={<div className="flex h-full items-center justify-center text-sm text-white/55">Loading viewer workspace…</div>}>
+              <ViewerShell
+                canvasRef={canvasRef}
+                effectiveModelUrl={effectiveModelUrl}
+                settings={settings}
+                modelInfo={modelInfo}
+                fileName={fileName}
+                viewerCommands={viewerCommands}
+                onViewerError={setViewerError}
+                onViewerProgress={handleViewerProgress}
+                onSettingsChange={patchSettings}
+                onModelInfo={setModelInfo}
+                onFitToModel={handleFitToModel}
+                onResetView={handleResetView}
+                onCreated={() => setLoading(false)}
+                stageOverlay={
+                  <div className="pointer-events-none absolute inset-0 z-20 flex flex-col justify-between p-4">
+                    <div className="flex flex-col gap-3">
+                      <div className="max-w-max rounded-full border border-white/10 bg-[rgba(8,14,18,0.78)] px-3 py-1 text-[11px] font-medium tracking-wide text-white/60 backdrop-blur">
+                        Viewer workspace
+                      </div>
 
-          {screenshotMessage ? (
-            <div className="absolute left-4 top-4 z-30 max-w-xs rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 shadow-lg">
-              {screenshotMessage}
-            </div>
-          ) : null}
+                      {viewerError ? (
+                        <div className="pointer-events-auto max-w-md">
+                          <StageNotice
+                            tone="error"
+                            title={viewerError}
+                            description="This model finished uploading, but the viewer could not prepare it cleanly."
+                            actions={
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={handleRetryModelLoad}
+                                  className="rounded-full border border-red-300/35 px-3 py-1 text-xs font-medium transition hover:bg-red-200/10"
+                                >
+                                  Retry load
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={resetToLanding}
+                                  className="rounded-full border border-white/15 px-3 py-1 text-xs font-medium transition hover:bg-white/10"
+                                >
+                                  Back to upload
+                                </button>
+                              </>
+                            }
+                          />
+                        </div>
+                      ) : null}
 
-          {screenshotError ? (
-            <div className="absolute left-4 top-4 z-30 max-w-xs rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-lg">
-              {screenshotError}
-            </div>
-          ) : null}
+                      {screenshotMessage ? (
+                        <div className="pointer-events-auto max-w-xs">
+                          <StageNotice tone="success" title={screenshotMessage} />
+                        </div>
+                      ) : null}
 
-          <button
-            onClick={handleScreenshot}
-            title="Save screenshot"
-            className="absolute bottom-4 right-4 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-[var(--chip-line)] bg-[var(--header-bg)] shadow-md backdrop-blur-sm transition hover:bg-[var(--chip-bg)]"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className="h-4 w-4 text-[var(--sea-ink)]"
-            >
-              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 0 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-              <circle cx="12" cy="13" r="4" />
-            </svg>
-          </button>
+                      {screenshotError ? (
+                        <div className="pointer-events-auto max-w-sm">
+                          <StageNotice tone="error" title={screenshotError} />
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <div className="flex items-end justify-between gap-3">
+                      <div className="rounded-2xl border border-white/10 bg-[rgba(8,14,18,0.72)] px-3 py-2 text-xs text-white/55 backdrop-blur">
+                        Use the side tools to inspect lighting, display mode, and model stats.
+                      </div>
+
+                      <div className="pointer-events-auto flex items-center gap-2">
+                        <FloatingActionButton onClick={handleScreenshot} title="Save screenshot">
+                          <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            className="h-4 w-4 text-white"
+                          >
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 0 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                            <circle cx="12" cy="13" r="4" />
+                          </svg>
+                        </FloatingActionButton>
+                      </div>
+                    </div>
+                  </div>
+                }
+                stageFooter={loading ? <LoadingOverlay message={loadingMessage} progress={viewerProgress} /> : null}
+              />
+            </Suspense>
+          </div>
         </div>
       )}
     </div>

@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, type ReactNode } from 'react'
 import type {
   ModelInfo,
   ViewerCommandState,
@@ -23,6 +23,8 @@ interface ViewerShellProps {
   onFitToModel: () => void
   onResetView: () => void
   onCreated: () => void
+  stageOverlay?: ReactNode
+  stageFooter?: ReactNode
 }
 
 export default function ViewerShell({
@@ -39,11 +41,13 @@ export default function ViewerShell({
   onFitToModel,
   onResetView,
   onCreated,
+  stageOverlay,
+  stageFooter,
 }: ViewerShellProps) {
   return (
-    <>
-      <div className="relative flex-1 overflow-hidden">
-        <Suspense fallback={<div className="flex h-full items-center justify-center text-sm text-[var(--sea-ink-soft)]">Loading canvas…</div>}>
+    <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_288px] bg-[#0b1116] xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="relative min-w-0 overflow-hidden border-r border-white/8 bg-[#0c1318]">
+        <Suspense fallback={<div className="flex h-full items-center justify-center text-sm text-white/55">Loading canvas…</div>}>
           <ViewerCanvas
             canvasRef={canvasRef}
             effectiveModelUrl={effectiveModelUrl}
@@ -55,10 +59,13 @@ export default function ViewerShell({
             onCreated={onCreated}
           />
         </Suspense>
+
+        {stageOverlay}
+        {stageFooter}
       </div>
 
-      <div className="w-60 shrink-0 overflow-y-auto border-l border-[var(--line)] bg-[var(--header-bg)] p-3">
-        <Suspense fallback={<div className="text-sm text-[var(--sea-ink-soft)]">Loading controls…</div>}>
+      <aside className="overflow-y-auto bg-[#10181f] p-3 text-white/88">
+        <Suspense fallback={<div className="text-sm text-white/55">Loading controls…</div>}>
           <ControlPanel
             settings={settings}
             onChange={onSettingsChange}
@@ -68,7 +75,7 @@ export default function ViewerShell({
             onResetView={onResetView}
           />
         </Suspense>
-      </div>
-    </>
+      </aside>
+    </div>
   )
 }
