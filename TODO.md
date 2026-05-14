@@ -13,6 +13,7 @@ Current verified baseline:
 - History works
 - Model fetch works
 - Viewer works with lighting / grid / axes / wireframe / screenshot
+- Viewer workspace v1 shipped: focused toolbar, dominant canvas stage, and tool-style right panel
 - Wireframe now renders as line-only
 - Loading overlay is scoped to the viewer area instead of the whole page
 
@@ -23,33 +24,7 @@ The next work should be closing the most important product-shaped gaps in a deli
 
 ## Highest priority now
 
-### 1. Viewer workspace v1
-Goal: turn the current viewer from “a page with a canvas and settings” into a focused review workspace.
-
-#### Acceptance skeleton
-- [ ] Viewer uses a clear 3-part layout
-  - [ ] lightweight top toolbar
-  - [ ] dominant canvas stage
-  - [ ] tool-style right panel
-- [ ] Top toolbar is thin and utility-like
-  - [ ] file name
-  - [ ] concise status
-  - [ ] back action
-- [ ] Canvas is the visual main area
-- [ ] Loading / error / retry / screenshot feedback all belong to the canvas layer
-- [ ] Right panel feels like viewer tools, not a generic web form sidebar
-- [ ] Overall viewer feels like a workspace, not a landing-page extension
-
-#### Explicitly out of scope for v1
-- [ ] white model improvements
-- [ ] flat shading improvements
-- [ ] OBJ / STL support
-- [ ] deeper auth work
-- [ ] landing page redesign
-
----
-
-### 2. Rewrite README to match the actual product
+### 1. Rewrite README to match the actual product
 - [ ] Explain PackView in one sentence
 - [ ] Describe the real current product surface
   - [ ] upload GLB / GLTF
@@ -68,7 +43,7 @@ Goal: turn the current viewer from “a page with a canvas and settings” into 
 
 ---
 
-### 3. Clean backend/config assumptions after the Postgres migration
+### 2. Clean backend/config assumptions after the Postgres migration
 - [ ] Remove stale LibSQL / SQLite wording from docs and comments
 - [ ] Review env handling for fail-fast behavior
   - [ ] DATABASE_URL
@@ -80,9 +55,9 @@ Goal: turn the current viewer from “a page with a canvas and settings” into 
 
 ---
 
-## Next product closures after workspace v1
+## Next product closures after docs/config cleanup
 
-### 4. Improve viewer inspection quality
+### 3. Improve viewer inspection quality
 - [ ] white model should feel intentional, not just a color flip
 - [ ] flat shading should be visually clean
 - [ ] add richer model inspection info
@@ -91,13 +66,13 @@ Goal: turn the current viewer from “a page with a canvas and settings” into 
   - [ ] heavy model warnings
 - [ ] add better background presets instead of raw color-only workflow
 
-### 5. Improve model/history workflow
+### 4. Improve model/history workflow
 - [ ] add upload date in history
 - [ ] add delete/remove history items
 - [ ] add rename capability for uploaded models
 - [ ] add search or filtering if history grows
 
-### 6. Improve screenshot/export workflow
+### 5. Improve screenshot/export workflow
 - [ ] stronger confirmation after save
 - [ ] higher-resolution export option
 - [ ] transparent background export if valuable
@@ -106,19 +81,19 @@ Goal: turn the current viewer from “a page with a canvas and settings” into 
 
 ## Reliability and architecture follow-up
 
-### 7. Add tests around critical backend paths
+### 6. Add tests around critical backend paths
 - [ ] upload API validation tests
 - [ ] auth-required API tests
 - [ ] history API tests
 - [ ] model path resolution tests
 
-### 8. Improve backend boundaries
+### 7. Improve backend boundaries
 - [ ] move storage logic behind a dedicated service module
 - [ ] move model queries behind a repository layer
 - [ ] standardize JSON error responses
 - [ ] add request logging for upload/history/model fetch
 
-### 9. Add a real migration strategy
+### 8. Add a real migration strategy
 - [ ] stop relying only on implicit boot-time table creation
 - [ ] define explicit schema evolution for auth + models tables
 
@@ -126,7 +101,7 @@ Goal: turn the current viewer from “a page with a canvas and settings” into 
 
 ## Nice follow-up features
 
-### 10. Packaging-specific features
+### 9. Packaging-specific features
 - [ ] texture / label swap workflows
 - [ ] annotation hotspots
 - [ ] compare mode for variants
@@ -137,28 +112,28 @@ Goal: turn the current viewer from “a page with a canvas and settings” into 
 ## Current recommended implementation order
 
 ### Phase A
-- [ ] close Viewer workspace v1
-
-### Phase B
 - [ ] rewrite README
 - [ ] clean env/config assumptions after Postgres migration
 
-### Phase C
+### Phase B
 - [ ] improve inspection quality
 - [ ] improve history workflow
 - [ ] improve screenshot/export
 
-### Phase D
+### Phase C
 - [ ] add backend tests
 - [ ] add repository/service boundaries
 - [ ] add explicit migration strategy
+
+### Phase D
+- [ ] packaging-specific features if product needs them
 
 ---
 
 ## Blunt take
 
-The highest-value next closure is still:
+The highest-value next closure is now:
 
-**Viewer workspace v1**
+**Rewrite README to match the actual shipped product**
 
-Not because the viewer is broken, but because it still does not yet feel like a focused professional review tool.
+Not because the viewer still needs its workspace shell, but because the roadmap and documentation should now reflect the product that already shipped.

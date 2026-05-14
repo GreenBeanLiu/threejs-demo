@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as StudioDemoRouteImport } from './routes/studio-demo'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
@@ -17,6 +18,11 @@ import { Route as ApiHistoryRouteImport } from './routes/api/history'
 import { Route as ApiModelIdRouteImport } from './routes/api/model.$id'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
+const StudioDemoRoute = StudioDemoRouteImport.update({
+  id: '/studio-demo',
+  path: '/studio-demo',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
@@ -57,6 +63,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/studio-demo': typeof StudioDemoRoute
   '/api/history': typeof ApiHistoryRoute
   '/api/upload': typeof ApiUploadRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -66,6 +73,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/studio-demo': typeof StudioDemoRoute
   '/api/history': typeof ApiHistoryRoute
   '/api/upload': typeof ApiUploadRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -76,6 +84,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/studio-demo': typeof StudioDemoRoute
   '/api/history': typeof ApiHistoryRoute
   '/api/upload': typeof ApiUploadRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -87,6 +96,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/register'
+    | '/studio-demo'
     | '/api/history'
     | '/api/upload'
     | '/api/auth/$'
@@ -96,6 +106,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/register'
+    | '/studio-demo'
     | '/api/history'
     | '/api/upload'
     | '/api/auth/$'
@@ -105,6 +116,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/register'
+    | '/studio-demo'
     | '/api/history'
     | '/api/upload'
     | '/api/auth/$'
@@ -115,6 +127,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
   RegisterRoute: typeof RegisterRoute
+  StudioDemoRoute: typeof StudioDemoRoute
   ApiHistoryRoute: typeof ApiHistoryRoute
   ApiUploadRoute: typeof ApiUploadRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -123,6 +136,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/studio-demo': {
+      id: '/studio-demo'
+      path: '/studio-demo'
+      fullPath: '/studio-demo'
+      preLoaderRoute: typeof StudioDemoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/register': {
       id: '/register'
       path: '/register'
@@ -179,6 +199,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
   RegisterRoute: RegisterRoute,
+  StudioDemoRoute: StudioDemoRoute,
   ApiHistoryRoute: ApiHistoryRoute,
   ApiUploadRoute: ApiUploadRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,

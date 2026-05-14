@@ -94,21 +94,31 @@ export default function Header({
 
   return (
     <header className="sticky top-0 z-50 border-b border-[var(--line)] bg-[var(--header-bg)] px-5 backdrop-blur-lg">
-      <div className="flex h-14 items-center justify-between">
+      <div className="flex h-14 items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[linear-gradient(135deg,#56c6be,#2d9d8f)] shadow-md">
-            <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-            </svg>
-          </div>
-          <div>
-            <span className="text-sm font-bold tracking-tight text-[var(--sea-ink)]">PackView</span>
-            {fileName && (
-              <span className="ml-2 hidden text-xs text-[var(--sea-ink-soft)] sm:inline">
-                {fileName.length > 32 ? fileName.slice(0, 32) + '…' : fileName}
-              </span>
-            )}
-          </div>
+          <Link to="/" className="flex items-center gap-3 no-underline">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[linear-gradient(135deg,#56c6be,#2d9d8f)] shadow-md">
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+              </svg>
+            </div>
+            <div>
+              <span className="text-sm font-bold tracking-tight text-[var(--sea-ink)]">PackView</span>
+              {fileName && (
+                <span className="ml-2 hidden text-xs text-[var(--sea-ink-soft)] sm:inline">
+                  {fileName.length > 32 ? fileName.slice(0, 32) + '…' : fileName}
+                </span>
+              )}
+            </div>
+          </Link>
+
+          <Link
+            to="/studio-demo"
+            className="hidden rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-3 py-1.5 text-xs font-medium text-[var(--sea-ink-soft)] transition hover:border-[#56c6be] hover:text-[var(--sea-ink)] md:inline-flex"
+            activeProps={{ className: 'hidden md:inline-flex rounded-full border border-[#56c6be]/45 bg-[rgba(79,184,178,0.12)] px-3 py-1.5 text-xs font-medium text-[var(--sea-ink)]' }}
+          >
+            Studio demo
+          </Link>
         </div>
 
         <div className="flex items-center gap-2">
