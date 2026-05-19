@@ -325,48 +325,23 @@ function ViewerPage() {
     <div className="flex h-[calc(100vh-57px)] flex-col">
       {!modelUrl ? (
         <div className="flex flex-1 flex-col overflow-y-auto px-6 py-8 lg:px-10">
-          <div className="mx-auto grid w-full max-w-6xl gap-8 lg:grid-cols-[minmax(0,1.15fr)_360px] lg:items-start">
-            <section className="flex flex-col gap-6">
-              <div className="max-w-2xl">
-                <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-3 py-1 text-xs font-medium tracking-wide text-[var(--sea-ink-soft)]">
+          <div className="mx-auto grid w-full max-w-6xl gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+            <section className="flex flex-col gap-5">
+              <div>
+                <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-3 py-1 text-xs font-medium tracking-wide text-[var(--sea-ink-soft)]">
                   <span className="h-2 w-2 rounded-full bg-[#56c6be]" />
                   PackView · Packaging 3D Review
                 </div>
-                <h1 className="text-4xl font-bold tracking-tight text-[var(--sea-ink)] sm:text-5xl">
-                  Review packaging models in a cleaner, client-friendly 3D workspace.
+                <h1 className="text-2xl font-bold tracking-tight text-[var(--sea-ink)] sm:text-3xl">
+                  Review packaging models in your browser
                 </h1>
-                <p className="mt-4 max-w-xl text-base leading-7 text-[var(--sea-ink-soft)] sm:text-lg">
-                  Upload GLB or GLTF files, inspect them from every angle, tune lighting, and keep a recent model history without leaving the browser.
+                <p className="mt-1.5 text-sm leading-6 text-[var(--sea-ink-soft)]">
+                  Drop a <span className="font-medium text-[var(--sea-ink)]">.glb</span> or <span className="font-medium text-[var(--sea-ink)]">.gltf</span> file to open it — up to 50 MB.
                 </p>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-3">
-                {[
-                  ['Fast review', 'Open product or packaging renders in seconds with a lighter landing page.'],
-                  ['Studio controls', 'Switch lighting presets, reset camera, and capture quick review screenshots.'],
-                  ['Recent history', 'Jump back into recently uploaded packaging models without re-uploading.'],
-                ].map(([title, desc]) => (
-                  <div key={title} className="island-shell rounded-3xl p-5">
-                    <p className="mb-2 text-sm font-semibold text-[var(--sea-ink)]">{title}</p>
-                    <p className="text-sm leading-6 text-[var(--sea-ink-soft)]">{desc}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="relative min-h-[300px] rounded-[28px] border border-[var(--line)] bg-[var(--header-bg)] p-4 shadow-[0_24px_60px_rgba(11,22,28,0.12)] sm:p-6">
-                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-[var(--sea-ink)]">Upload a packaging model</p>
-                    <p className="text-sm text-[var(--sea-ink-soft)]">
-                      Supports <span className="font-medium text-[var(--sea-ink)]">.glb</span> and <span className="font-medium text-[var(--sea-ink)]">.gltf</span> up to 50MB.
-                    </p>
-                  </div>
-                  <div className="rounded-full bg-[var(--chip-bg)] px-3 py-1 text-xs text-[var(--sea-ink-soft)]">
-                    Best for mockups, dielines, and packaging previews
-                  </div>
-                </div>
-
-                <div className="relative h-64 w-full">
+              <div className="relative rounded-[28px] border border-[var(--line)] bg-[var(--header-bg)] p-4 shadow-[0_24px_60px_rgba(11,22,28,0.12)] sm:p-6">
+                <div className="relative h-72 w-full sm:h-80">
                   <DropZone
                     onFile={handleFile}
                     onProcessing={setProcessing}
@@ -377,15 +352,25 @@ function ViewerPage() {
                   {loading && <LoadingOverlay message={loadingMessage} progress={viewerProgress} />}
                 </div>
               </div>
+
+              <div className="grid gap-3 sm:grid-cols-3">
+                {[
+                  ['Studio controls', 'Switch lighting presets, reset camera, and capture review screenshots.'],
+                  ['Recent history', 'Jump back into recently uploaded models without re-uploading.'],
+                  ['Instant load', 'View GLB / GLTF renders in seconds — no plugins required.'],
+                ].map(([title, desc]) => (
+                  <div key={title} className="island-shell rounded-2xl p-4">
+                    <p className="mb-1 text-xs font-semibold text-[var(--sea-ink)]">{title}</p>
+                    <p className="text-xs leading-5 text-[var(--sea-ink-soft)]">{desc}</p>
+                  </div>
+                ))}
+              </div>
             </section>
 
             <aside className="flex flex-col gap-4">
               <div className="island-shell rounded-[28px] p-5">
                 <p className="text-sm font-semibold text-[var(--sea-ink)]">Recent uploads</p>
-                <p className="mt-1 text-sm leading-6 text-[var(--sea-ink-soft)]">
-                  Re-open recently reviewed models and keep your packaging review flow moving.
-                </p>
-                <div className="mt-4">
+                <div className="mt-3">
                   <HistoryPanel
                     onSelect={handleFile}
                     refreshKey={historyRefreshKey}
@@ -393,24 +378,6 @@ function ViewerPage() {
                     signedIn={!!session?.user}
                   />
                 </div>
-              </div>
-
-              <div className="island-shell rounded-[28px] p-5">
-                <p className="text-sm font-semibold text-[var(--sea-ink)]">Suggested review flow</p>
-                <ol className="mt-3 space-y-3 text-sm text-[var(--sea-ink-soft)]">
-                  {[
-                    'Upload the latest packaging model revision.',
-                    'Check lighting presets and camera fit for overall form.',
-                    'Use screenshot export to share quick review snapshots.',
-                  ].map((step, index) => (
-                    <li key={step} className="flex gap-3 leading-6">
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[rgba(86,198,190,0.14)] text-xs font-semibold text-[var(--sea-ink)]">
-                        {index + 1}
-                      </span>
-                      <span>{step}</span>
-                    </li>
-                  ))}
-                </ol>
               </div>
             </aside>
           </div>
