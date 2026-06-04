@@ -132,11 +132,17 @@ export default function DropZone({
           className="sr-only"
           onChange={onInputChange}
         />
-        <div className="text-5xl">📦</div>
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--line)] bg-[var(--chip-bg)]">
+          <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7 text-[#56c6be]">
+            <path d="M16 3L29 10v12L16 29 3 22V10L16 3z"/>
+            <path d="M16 3v26M3 10l13 7 13-7"/>
+            <path d="M9.5 6.5L22.5 13.5"/>
+          </svg>
+        </div>
         <div className="text-center">
           <p className="text-base font-semibold text-[var(--sea-ink)]">Drop a GLB / GLTF file here</p>
           <p className="mt-1 text-sm text-[var(--sea-ink-soft)]">or click to browse</p>
-          <p className="mt-2 text-xs text-[var(--sea-ink-soft)]">Supported formats: .glb, .gltf · Max size: 50MB</p>
+          <p className="mt-2 font-mono text-xs text-[var(--sea-ink-soft)] tracking-wide">.glb · .gltf · max 50 MB</p>
           <p className="mt-1 text-xs text-[var(--sea-ink-soft)]">
             {signedIn ? 'Upload will save to your recent history automatically.' : 'Sign in first if you want uploads saved to your account history.'}
           </p>
@@ -144,21 +150,15 @@ export default function DropZone({
       </label>
 
       {statusMessage ? (
-        <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-700">
-          {statusMessage}
-        </div>
+        <div className="msg msg-info">{statusMessage}</div>
       ) : null}
 
       {errorMessage ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {errorMessage}
-        </div>
+        <div className="msg msg-error">{errorMessage}</div>
       ) : null}
 
       {successMessage ? (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-          {successMessage}
-        </div>
+        <div className="msg msg-ok">{successMessage}</div>
       ) : null}
     </div>
   )

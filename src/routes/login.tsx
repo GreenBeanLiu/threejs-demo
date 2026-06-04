@@ -51,12 +51,17 @@ function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[var(--bg)]">
+    <div className="flex min-h-screen items-center justify-center bg-[var(--bg-base)]">
       <div className="island-shell w-full max-w-sm rounded-2xl p-8">
         <div className="mb-8 text-center">
-          <p className="text-2xl">📦</p>
-          <h1 className="mt-2 text-xl font-bold text-[var(--sea-ink)]">Sign in to PackView</h1>
-          <p className="mt-1 text-sm text-[var(--sea-ink-soft)]">3D Packaging Viewer</p>
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[linear-gradient(135deg,#56c6be,#2d9d8f)] shadow-lg shadow-[rgba(79,184,178,0.25)]">
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
+              <path d="M12 2L21 7.5v9L12 22 3 16.5v-9L12 2z"/>
+              <path d="M12 2v20M3 7.5l9 5 9-5"/>
+            </svg>
+          </div>
+          <h1 className="text-xl font-bold tracking-tight text-[var(--sea-ink)]">Sign in to PackView</h1>
+          <p className="mt-1 text-sm text-[var(--sea-ink-soft)]">3D Model Viewer</p>
         </div>
 
         <div className="flex flex-col gap-3">

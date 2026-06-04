@@ -103,7 +103,7 @@ export default function Header({
               </svg>
             </div>
             <div>
-              <span className="text-sm font-bold tracking-tight text-[var(--sea-ink)]">PackView</span>
+              <span className="display-title text-sm font-bold text-[var(--sea-ink)]">PackView</span>
               {fileName && (
                 <span className="ml-2 hidden text-xs text-[var(--sea-ink-soft)] sm:inline">
                   {fileName.length > 32 ? fileName.slice(0, 32) + '…' : fileName}

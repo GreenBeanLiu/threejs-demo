@@ -1,4 +1,4 @@
-# TODO - PackView / threejs-learn
+# TODO - PackView / threejs-demo
 
 ## Current product state
 

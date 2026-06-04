@@ -1,9 +1,10 @@
-@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Epilogue:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap");
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
 @theme {
-  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Epilogue", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
 :root {
@@ -248,12 +249,44 @@ a {
 }
 
 @keyframes rise-in {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
+
+/* ── Status message tokens (dark/light safe) ── */
+:root {
+  --msg-info-bg:     rgba(56, 189, 248, 0.10);
+  --msg-info-border: rgba(56, 189, 248, 0.25);
+  --msg-info-text:   #7dd3fc;
+  --msg-error-bg:    rgba(248, 113, 113, 0.10);
+  --msg-error-border:rgba(248, 113, 113, 0.25);
+  --msg-error-text:  #fca5a5;
+  --msg-ok-bg:       rgba(52, 211, 153, 0.10);
+  --msg-ok-border:   rgba(52, 211, 153, 0.25);
+  --msg-ok-text:     #6ee7b7;
+}
+
+[data-theme="light"],
+:root:not([data-theme="dark"]):not(.dark) {
+  --msg-info-bg:     #eff6ff;
+  --msg-info-border: #bfdbfe;
+  --msg-info-text:   #1d4ed8;
+  --msg-error-bg:    #fef2f2;
+  --msg-error-border:#fecaca;
+  --msg-error-text:  #dc2626;
+  --msg-ok-bg:       #f0fdf4;
+  --msg-ok-border:   #bbf7d0;
+  --msg-ok-text:     #16a34a;
+}
+
+.msg {
+  border-radius: 12px; border-width: 1px; border-style: solid;
+  padding: 10px 14px; font-size: 0.8125rem; line-height: 1.5;
+}
+.msg-info  { background: var(--msg-info-bg);  border-color: var(--msg-info-border);  color: var(--msg-info-text);  }
+.msg-error { background: var(--msg-error-bg); border-color: var(--msg-error-border); color: var(--msg-error-text); }
+.msg-ok    { background: var(--msg-ok-bg);    border-color: var(--msg-ok-border);    color: var(--msg-ok-text);    }
+
+/* ── Letter spacing refinement ── */
+h1, h2, h3, h4 { letter-spacing: -0.02em; }
+.display-title  { letter-spacing: -0.03em; }
