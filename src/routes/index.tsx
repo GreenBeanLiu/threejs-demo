@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { lazy, Suspense, type ChangeEvent, useCallback, useEffect, useState } from 'react'
-import { signOut, useSession } from '../lib/auth-client'
+import { useSession } from '../lib/auth-client'
 import DropZone from '../components/DropZone'
 import HistoryPanel from '../components/HistoryPanel'
 import {
@@ -206,11 +206,6 @@ function ViewerPage() {
     [handleFile, refreshHistory],
   )
 
-  const handleSignOut = useCallback(async () => {
-    await signOut()
-    window.location.href = '/login'
-  }, [])
-
   const loadingMessage = processing ? 'Uploading and saving model…' : 'Loading model…'
 
   return (
@@ -296,31 +291,15 @@ function ViewerPage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <label className="hidden cursor-pointer items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/70 transition hover:border-[#56c6be]/40 hover:text-white sm:flex">
-                  <input type="file" accept=".glb,.gltf" className="sr-only" onChange={handleToolbarUpload} />
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.5 w-3.5">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="17 8 12 3 7 8" />
-                    <line x1="12" y1="3" x2="12" y2="15" />
-                  </svg>
-                  Replace model
-                </label>
-                {session?.user ? (
-                  <>
-                    <span className="hidden text-xs text-white/42 lg:inline">
-                      {session.user.name || session.user.email}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={handleSignOut}
-                      className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/68 transition hover:border-red-400/40 hover:text-red-200"
-                    >
-                      Sign out
-                    </button>
-                  </>
-                ) : null}
-              </div>
+              <label className="hidden cursor-pointer items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/70 transition hover:border-[#56c6be]/40 hover:text-white sm:flex">
+                <input type="file" accept=".glb,.gltf" className="sr-only" onChange={handleToolbarUpload} />
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.5 w-3.5">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+                Replace model
+              </label>
             </div>
           </div>
 
