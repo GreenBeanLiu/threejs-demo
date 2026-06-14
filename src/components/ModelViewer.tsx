@@ -22,17 +22,20 @@ import type {
 
 export type { ModelInfo, ViewerCommandState, ViewerProgressState, ViewerSettings }
 
-function getFormat(url: string) {
-  const cleanUrl = url.split('?')[0].toLowerCase()
-  if (cleanUrl.endsWith('.glb')) return 'glb'
-  if (cleanUrl.endsWith('.gltf')) return 'gltf'
-  if (cleanUrl.endsWith('.obj')) return 'obj'
-  if (cleanUrl.endsWith('.stl')) return 'stl'
+function getFormat(url: string, fileName?: string | null) {
+  const sources = [url.split('?')[0], fileName ?? ''].map((s) => s.toLowerCase())
+  for (const s of sources) {
+    if (s.endsWith('.glb')) return 'glb'
+    if (s.endsWith('.gltf')) return 'gltf'
+    if (s.endsWith('.obj')) return 'obj'
+    if (s.endsWith('.stl')) return 'stl'
+  }
   return 'unknown'
 }
 
 function LoadedScene({
   url,
+  fileName,
   settings,
   onInfo,
   onBottomY,
@@ -42,6 +45,7 @@ function LoadedScene({
   resetVersion,
 }: {
   url: string
+  fileName?: string | null
   settings: ViewerSettings
   onInfo: (info: ModelInfo) => void
   onBottomY: (y: number) => void
@@ -50,7 +54,7 @@ function LoadedScene({
   fitVersion: number
   resetVersion: number
 }) {
-  const format = getFormat(url)
+  const format = getFormat(url, fileName)
   const gltf = format === 'glb' || format === 'gltf' ? useGLTF(url) : null
   const [externalRoot, setExternalRoot] = useState<THREE.Group | null>(null)
   const bounds = useBounds()
@@ -137,12 +141,14 @@ function LoadedScene({
 
 export default function ModelViewer({
   url,
+  fileName,
   settings,
   onInfo,
   commands,
   onProgress,
 }: {
   url: string
+  fileName?: string | null
   settings: ViewerSettings
   onInfo: (info: ModelInfo) => void
   commands?: ViewerCommandState
@@ -175,6 +181,7 @@ export default function ModelViewer({
       <Bounds fit clip observe margin={1.2}>
         <LoadedScene
           url={url}
+          fileName={fileName}
           settings={settings}
           onInfo={onInfo}
           onBottomY={setBottomY}

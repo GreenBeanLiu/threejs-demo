@@ -12,6 +12,7 @@ import ModelViewer from './ModelViewer'
 interface ViewerCanvasProps {
   canvasRef: React.RefObject<HTMLCanvasElement | null>
   effectiveModelUrl: string | null
+  fileName: string | null
   settings: ViewerSettings
   viewerCommands: ViewerCommandState
   onViewerError: (message: string) => void
@@ -23,6 +24,7 @@ interface ViewerCanvasProps {
 export default function ViewerCanvas({
   canvasRef,
   effectiveModelUrl,
+  fileName,
   settings,
   viewerCommands,
   onViewerError,
@@ -45,6 +47,7 @@ export default function ViewerCanvas({
             <ModelViewer
               key={effectiveModelUrl}
               url={effectiveModelUrl}
+              fileName={fileName}
               settings={settings}
               onInfo={onModelInfo}
               commands={viewerCommands}

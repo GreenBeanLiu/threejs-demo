@@ -51,6 +51,7 @@ export default function ViewerShell({
           <ViewerCanvas
             canvasRef={canvasRef}
             effectiveModelUrl={effectiveModelUrl}
+            fileName={fileName}
             settings={settings}
             viewerCommands={viewerCommands}
             onViewerError={onViewerError}
