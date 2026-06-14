@@ -129,17 +129,19 @@ async function migrate(db: Sql) {
   }
 
   try {
-    await db.unsafe(`
-      DO $$
-      BEGIN
-        IF EXISTS (
-          SELECT 1 FROM information_schema.columns
-          WHERE table_name = 'models' AND column_name = 'userId'
-        ) THEN
-          ALTER TABLE models RENAME COLUMN "userId" TO user_id;
-        END IF;
-      END $$;
+    const rows = await db.unsafe<{ column_name: string }[]>(
+      `SELECT column_name FROM information_schema.columns WHERE table_name = 'models' AND column_name = 'userId'`
+    )
+    if (rows.length > 0) {
+      await db.unsafe(`ALTER TABLE models RENAME COLUMN "userId" TO user_id`)
+      console.log('>>> Renamed models.userId to user_id')
+    }
+  } catch (err) {
+    console.error('>>> Models column rename failed:', err)
+  }
 
+  try {
+    await db.unsafe(`
       CREATE TABLE IF NOT EXISTS models (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
@@ -147,9 +149,9 @@ async function migrate(db: Sql) {
         size BIGINT NOT NULL,
         r2_key TEXT NOT NULL,
         uploaded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      );
-      CREATE INDEX IF NOT EXISTS idx_models_user ON models(user_id, uploaded_at DESC);
+      )
     `)
+    await db.unsafe(`CREATE INDEX IF NOT EXISTS idx_models_user ON models(user_id, uploaded_at DESC)`)
     console.log('>>> Models table migrated')
   } catch (err) {
     console.error('>>> Models migration failed:', err)
