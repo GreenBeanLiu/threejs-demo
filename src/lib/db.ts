@@ -137,6 +137,7 @@ async function migrate(db: Sql) {
     const renames: [string, string][] = [
       ['userId', 'user_id'],
       ['r2Key', 'r2_key'],
+      ['path', 'r2_key'],
       ['uploadedAt', 'uploaded_at'],
     ]
     for (const [from, to] of renames) {
@@ -144,6 +145,13 @@ async function migrate(db: Sql) {
         await db.unsafe(`ALTER TABLE models RENAME COLUMN "${from}" TO ${to}`)
         console.log(`>>> Renamed models.${from} to ${to}`)
       }
+    }
+    const pathRows = await db.unsafe<{ count: string }[]>(
+      `SELECT count(*) as count FROM models WHERE r2_key LIKE '/api/model/%'`
+    ).catch(() => [])
+    if (pathRows[0] && Number(pathRows[0].count) > 0) {
+      await db.unsafe(`UPDATE models SET r2_key = 'models/' || regexp_replace(r2_key, '^/api/model/', '') WHERE r2_key LIKE '/api/model/%'`)
+      console.log(`>>> Converted ${pathRows[0].count} path values to r2_key format`)
     }
   } catch (err) {
     console.error('>>> Models column rename failed:', err)
