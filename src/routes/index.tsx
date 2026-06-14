@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { lazy, Suspense, type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, type ChangeEvent, useCallback, useEffect, useState } from 'react'
 import { signOut, useSession } from '../lib/auth-client'
 import DropZone from '../components/DropZone'
 import HistoryPanel from '../components/HistoryPanel'
@@ -9,12 +9,7 @@ import {
   revokeObjectUrl,
   uploadModelFile,
 } from '../lib/uploads'
-import type {
-  ModelInfo,
-  ViewerCommandState,
-  ViewerProgressState,
-  ViewerSettings,
-} from '../components/ModelViewer'
+import type { ViewerSettings } from '../components/model-viewer/types'
 
 const ViewerShell = lazy(() => import('../components/ViewerShell'))
 
@@ -22,48 +17,13 @@ export const Route = createFileRoute('/')({ component: ViewerPage })
 
 const DEFAULT_SETTINGS: ViewerSettings = {
   environment: 'studio',
-  wireframe: false,
-  whiteModel: false,
-  flatShading: false,
   autoRotate: true,
   autoRotateSpeed: 0.8,
-  showGrid: false,
-  showAxes: false,
   exposure: 1.2,
   background: '#0f0f14',
-  lightIntensity: 1.2,
 }
 
-function getLoadingMessage(params: {
-  processing: boolean
-  progress: ViewerProgressState | null
-}) {
-  if (params.processing) {
-    return 'Uploading and saving model…'
-  }
-
-  if (!params.progress) {
-    return 'Loading model…'
-  }
-
-  if (params.progress.active) {
-    if (params.progress.total > 0) {
-      return `Loading model… ${Math.round(params.progress.progress)}%`
-    }
-
-    return 'Loading model assets…'
-  }
-
-  return 'Preparing viewer…'
-}
-
-function LoadingOverlay({
-  message = 'Loading model…',
-  progress,
-}: {
-  message?: string
-  progress?: ViewerProgressState | null
-}) {
+function LoadingOverlay({ message = 'Loading model…' }: { message?: string }) {
   return (
     <div className="absolute inset-0 z-[100] flex items-center justify-center bg-[rgba(6,10,14,0.36)] backdrop-blur-[2px]">
       <div className="flex min-w-[260px] max-w-sm flex-col gap-4 rounded-2xl border border-white/10 bg-[rgba(10,16,22,0.88)] p-6 text-white shadow-2xl">
@@ -79,21 +39,6 @@ function LoadingOverlay({
             <p className="mt-0.5 text-xs text-white/45">Viewer workspace is preparing the current asset.</p>
           </div>
         </div>
-        {progress?.active ? (
-          <>
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
-              <div
-                className="h-full rounded-full bg-[#56c6be] transition-all"
-                style={{ width: `${Math.max(6, Math.min(100, progress.progress || 0))}%` }}
-              />
-            </div>
-            <p className="text-xs text-white/45">
-              {progress.total > 0
-                ? `${progress.loaded}/${progress.total} assets`
-                : 'Fetching model assets'}
-            </p>
-          </>
-        ) : null}
       </div>
     </div>
   )
@@ -148,19 +93,13 @@ function ViewerPage() {
   const { data: session } = useSession()
   const [modelUrl, setModelUrl] = useState<string | null>(null)
   const [fileName, setFileName] = useState<string | null>(null)
-  const [modelInfo, setModelInfo] = useState<ModelInfo | null>(null)
   const [settings, setSettings] = useState<ViewerSettings>(DEFAULT_SETTINGS)
   const [loading, setLoading] = useState(false)
   const [processing, setProcessing] = useState(false)
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0)
-  const [fitVersion, setFitVersion] = useState(0)
-  const [resetVersion, setResetVersion] = useState(0)
-  const [retryVersion, setRetryVersion] = useState(0)
   const [viewerError, setViewerError] = useState('')
-  const [viewerProgress, setViewerProgress] = useState<ViewerProgressState | null>(null)
   const [screenshotMessage, setScreenshotMessage] = useState('')
   const [screenshotError, setScreenshotError] = useState('')
-  const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
     if (!screenshotMessage && !screenshotError) {
@@ -181,15 +120,11 @@ function ViewerPage() {
 
   const resetToLanding = useCallback(() => {
     setModelUrl((prev) => {
-      if (prev?.startsWith('blob:')) {
-        URL.revokeObjectURL(prev)
-      }
+      if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev)
       return null
     })
     setFileName(null)
-    setModelInfo(null)
     setViewerError('')
-    setViewerProgress(null)
     setScreenshotMessage('')
     setScreenshotError('')
     setLoading(false)
@@ -198,18 +133,13 @@ function ViewerPage() {
 
   const handleFile = useCallback((url: string, name: string, isProcessing?: boolean) => {
     setModelUrl((prev) => {
-      if (prev?.startsWith('blob:')) {
-        URL.revokeObjectURL(prev)
-      }
+      if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev)
       return url
     })
     setFileName(name)
-    setModelInfo(null)
     setViewerError('')
-    setViewerProgress(null)
     setScreenshotMessage('')
     setScreenshotError('')
-    setRetryVersion(0)
     setLoading(true)
     if (isProcessing !== undefined) setProcessing(isProcessing)
   }, [])
@@ -222,23 +152,23 @@ function ViewerPage() {
     setScreenshotMessage('')
     setScreenshotError('')
 
-    const canvas = document.querySelector('canvas')
-    if (!canvas) {
-      setScreenshotError('Screenshot failed: canvas not ready.')
+    const mv = document.querySelector('model-viewer') as (HTMLElement & { toBlob?: (opts?: object) => Promise<Blob> }) | null
+    if (!mv?.toBlob) {
+      setScreenshotError('Screenshot failed: viewer not ready.')
       return
     }
 
-    try {
+    mv.toBlob({ idealAspect: true }).then((blob: Blob) => {
+      const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.download = (fileName?.replace(/\.[^.]+$/, '') ?? 'model') + '-preview.png'
-      link.href = canvas.toDataURL('image/png')
+      link.href = url
       link.click()
+      URL.revokeObjectURL(url)
       setScreenshotMessage('Screenshot saved.')
-    } catch (error) {
-      setScreenshotError(
-        error instanceof Error ? `Screenshot failed: ${error.message}` : 'Screenshot failed.',
-      )
-    }
+    }).catch((error: unknown) => {
+      setScreenshotError(error instanceof Error ? `Screenshot failed: ${error.message}` : 'Screenshot failed.')
+    })
   }, [fileName])
 
   const handleToolbarUpload = useCallback(
@@ -281,45 +211,7 @@ function ViewerPage() {
     window.location.href = '/login'
   }, [])
 
-  const handleFitToModel = useCallback(() => {
-    setFitVersion((value) => value + 1)
-  }, [])
-
-  const handleResetView = useCallback(() => {
-    setResetVersion((value) => value + 1)
-  }, [])
-
-  const handleRetryModelLoad = useCallback(() => {
-    if (!modelUrl) {
-      return
-    }
-
-    setViewerError('')
-    setViewerProgress(null)
-    setLoading(true)
-    setRetryVersion((value) => value + 1)
-  }, [modelUrl])
-
-  const handleViewerProgress = useCallback((progress: ViewerProgressState) => {
-    setViewerProgress(progress)
-    if (!progress.active && progress.progress >= 100) {
-      setLoading(false)
-    }
-  }, [])
-
-  const viewerCommands = useMemo<ViewerCommandState>(
-    () => ({ fitVersion, resetVersion }),
-    [fitVersion, resetVersion],
-  )
-
-  const loadingMessage = getLoadingMessage({
-    processing,
-    progress: viewerProgress,
-  })
-
-  const effectiveModelUrl = modelUrl
-    ? `${modelUrl}${modelUrl.includes('?') ? '&' : '?'}rv=${retryVersion}`
-    : null
+  const loadingMessage = processing ? 'Uploading and saving model…' : 'Loading model…'
 
   return (
     <div className="flex h-[calc(100vh-57px)] flex-col">
@@ -349,7 +241,7 @@ function ViewerPage() {
                     signedIn={!!session?.user}
                     previewError={viewerError}
                   />
-                  {loading && <LoadingOverlay message={loadingMessage} progress={viewerProgress} />}
+                  {loading && <LoadingOverlay message={loadingMessage} />}
                 </div>
               </div>
 
@@ -399,13 +291,7 @@ function ViewerPage() {
                     {fileName ?? 'Current model'}
                   </p>
                   <p className="mt-0.5 text-xs text-white/45">
-                    {processing
-                      ? 'Uploading model and preparing viewer…'
-                      : loading
-                        ? loadingMessage
-                        : viewerError
-                          ? 'Viewer needs attention'
-                          : 'Model ready for review'}
+                    {processing ? 'Uploading…' : loading ? 'Loading model…' : viewerError ? 'Viewer needs attention' : 'Model ready for review'}
                   </p>
                 </div>
               </div>
@@ -441,90 +327,51 @@ function ViewerPage() {
           <div className="min-h-0 flex-1 p-3 sm:p-4">
             <Suspense fallback={<div className="flex h-full items-center justify-center text-sm text-white/55">Loading viewer workspace…</div>}>
               <ViewerShell
-                canvasRef={canvasRef}
-                effectiveModelUrl={effectiveModelUrl}
-                settings={settings}
-                modelInfo={modelInfo}
+                effectiveModelUrl={modelUrl}
                 fileName={fileName}
-                viewerCommands={viewerCommands}
+                settings={settings}
                 onViewerError={setViewerError}
-                onViewerProgress={handleViewerProgress}
                 onSettingsChange={patchSettings}
-                onModelInfo={setModelInfo}
-                onFitToModel={handleFitToModel}
-                onResetView={handleResetView}
                 onCreated={() => setLoading(false)}
                 stageOverlay={
                   <div className="pointer-events-none absolute inset-0 z-20 flex flex-col justify-between p-4">
                     <div className="flex flex-col gap-3">
-                      <div className="max-w-max rounded-full border border-white/10 bg-[rgba(8,14,18,0.78)] px-3 py-1 text-[11px] font-medium tracking-wide text-white/60 backdrop-blur">
-                        Viewer workspace
-                      </div>
-
                       {viewerError ? (
                         <div className="pointer-events-auto max-w-md">
                           <StageNotice
                             tone="error"
                             title={viewerError}
-                            description="This model finished uploading, but the viewer could not prepare it cleanly."
+                            description="The viewer could not load this model."
                             actions={
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={handleRetryModelLoad}
-                                  className="rounded-full border border-red-300/35 px-3 py-1 text-xs font-medium transition hover:bg-red-200/10"
-                                >
-                                  Retry load
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={resetToLanding}
-                                  className="rounded-full border border-white/15 px-3 py-1 text-xs font-medium transition hover:bg-white/10"
-                                >
-                                  Back to upload
-                                </button>
-                              </>
+                              <button type="button" onClick={resetToLanding} className="rounded-full border border-white/15 px-3 py-1 text-xs font-medium transition hover:bg-white/10">
+                                Back to upload
+                              </button>
                             }
                           />
                         </div>
                       ) : null}
-
                       {screenshotMessage ? (
                         <div className="pointer-events-auto max-w-xs">
                           <StageNotice tone="success" title={screenshotMessage} />
                         </div>
                       ) : null}
-
                       {screenshotError ? (
                         <div className="pointer-events-auto max-w-sm">
                           <StageNotice tone="error" title={screenshotError} />
                         </div>
                       ) : null}
                     </div>
-
-                    <div className="flex items-end justify-between gap-3">
-                      <div className="rounded-2xl border border-white/10 bg-[rgba(8,14,18,0.72)] px-3 py-2 text-xs text-white/55 backdrop-blur">
-                        Use the side tools to inspect lighting, display mode, and model stats.
-                      </div>
-
-                      <div className="pointer-events-auto flex items-center gap-2">
-                        <FloatingActionButton onClick={handleScreenshot} title="Save screenshot">
-                          <svg
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            className="h-4 w-4 text-white"
-                          >
-                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 0 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                            <circle cx="12" cy="13" r="4" />
-                          </svg>
-                        </FloatingActionButton>
-                      </div>
+                    <div className="pointer-events-auto flex justify-end">
+                      <FloatingActionButton onClick={handleScreenshot} title="Save screenshot">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 text-white">
+                          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 0 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                          <circle cx="12" cy="13" r="4" />
+                        </svg>
+                      </FloatingActionButton>
                     </div>
                   </div>
                 }
-                stageFooter={loading ? <LoadingOverlay message={loadingMessage} progress={viewerProgress} /> : null}
+                stageFooter={loading ? <LoadingOverlay message={loadingMessage} /> : null}
               />
             </Suspense>
           </div>

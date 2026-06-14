@@ -1,66 +1,49 @@
-import { lazy, Suspense, type ReactNode } from 'react'
-import type {
-  ModelInfo,
-  ViewerCommandState,
-  ViewerProgressState,
-  ViewerSettings,
-} from './ModelViewer'
+import { useRef, type ReactNode } from 'react'
+import { lazy, Suspense } from 'react'
+import ModelViewerElement, { type ModelViewerHandle } from './ModelViewerElement'
+import type { ViewerSettings } from './model-viewer/types'
 
 const ControlPanel = lazy(() => import('./ControlPanel'))
-const ViewerCanvas = lazy(() => import('./ViewerCanvas'))
 
 interface ViewerShellProps {
-  canvasRef: React.RefObject<HTMLCanvasElement | null>
   effectiveModelUrl: string | null
-  settings: ViewerSettings
-  modelInfo: ModelInfo | null
   fileName: string | null
-  viewerCommands: ViewerCommandState
-  onViewerError: (message: string) => void
-  onViewerProgress: (progress: ViewerProgressState) => void
+  settings: ViewerSettings
   onSettingsChange: (patch: Partial<ViewerSettings>) => void
-  onModelInfo: (info: ModelInfo) => void
-  onFitToModel: () => void
-  onResetView: () => void
+  onViewerError: (message: string) => void
   onCreated: () => void
   stageOverlay?: ReactNode
   stageFooter?: ReactNode
 }
 
 export default function ViewerShell({
-  canvasRef,
   effectiveModelUrl,
-  settings,
-  modelInfo,
   fileName,
-  viewerCommands,
-  onViewerError,
-  onViewerProgress,
+  settings,
   onSettingsChange,
-  onModelInfo,
-  onFitToModel,
-  onResetView,
+  onViewerError,
   onCreated,
   stageOverlay,
   stageFooter,
 }: ViewerShellProps) {
+  const mvRef = useRef<ModelViewerHandle>(null)
+
   return (
     <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_288px] bg-[#0b1116] xl:grid-cols-[minmax(0,1fr)_320px]">
-      <div className="relative min-w-0 overflow-hidden border-r border-white/8 bg-[#0c1318]">
-        <Suspense fallback={<div className="flex h-full items-center justify-center text-sm text-white/55">Loading canvas…</div>}>
-          <ViewerCanvas
-            canvasRef={canvasRef}
-            effectiveModelUrl={effectiveModelUrl}
-            fileName={fileName}
-            settings={settings}
-            viewerCommands={viewerCommands}
-            onViewerError={onViewerError}
-            onViewerProgress={onViewerProgress}
-            onModelInfo={onModelInfo}
-            onCreated={onCreated}
+      <div className="relative min-w-0 overflow-hidden border-r border-white/8">
+        {effectiveModelUrl ? (
+          <ModelViewerElement
+            ref={mvRef}
+            src={effectiveModelUrl}
+            autoRotate={settings.autoRotate}
+            autoRotateSpeed={settings.autoRotateSpeed}
+            exposure={settings.exposure}
+            background={settings.background}
+            environment={settings.environment}
+            onLoad={onCreated}
+            onError={onViewerError}
           />
-        </Suspense>
-
+        ) : null}
         {stageOverlay}
         {stageFooter}
       </div>
@@ -70,10 +53,9 @@ export default function ViewerShell({
           <ControlPanel
             settings={settings}
             onChange={onSettingsChange}
-            modelInfo={modelInfo}
             fileName={fileName}
-            onFitToModel={onFitToModel}
-            onResetView={onResetView}
+            onFitToModel={() => mvRef.current?.fitToModel()}
+            onResetView={() => mvRef.current?.resetView()}
           />
         </Suspense>
       </aside>

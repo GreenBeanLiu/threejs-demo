@@ -11,17 +11,11 @@ export interface ModelInfo {
 }
 
 export interface ViewerSettings {
-  environment: 'city' | 'studio' | 'sunset' | 'warehouse' | 'forest' | 'night'
-  wireframe: boolean
-  whiteModel: boolean
-  flatShading: boolean
+  environment: 'studio' | 'city' | 'warehouse' | 'sunset' | 'forest' | 'night'
   autoRotate: boolean
   autoRotateSpeed: number
-  showGrid: boolean
-  showAxes: boolean
   exposure: number
   background: string
-  lightIntensity: number
 }
 
 export interface ViewerCommandState {

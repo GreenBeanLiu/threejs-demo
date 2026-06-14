@@ -15,6 +15,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1019.0",
     "@better-auth/kysely-adapter": "^1.5.6",
+    "@google/model-viewer": "^4.3.1",
     "@libsql/client": "^0.17.2",
     "@libsql/kysely-libsql": "^0.4.1",
     "@react-three/drei": "^10.7.7",

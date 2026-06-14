@@ -1,4 +1,4 @@
-import type { ModelInfo, ViewerSettings } from './ModelViewer'
+import type { ViewerSettings } from './model-viewer/types'
 
 const ENV_PRESETS: { key: ViewerSettings['environment']; label: string; icon: string }[] = [
   { key: 'studio', label: 'Studio', icon: '🎬' },
@@ -97,7 +97,6 @@ function Slider({
 interface ControlPanelProps {
   settings: ViewerSettings
   onChange: (patch: Partial<ViewerSettings>) => void
-  modelInfo: ModelInfo | null
   fileName: string | null
   onFitToModel?: () => void
   onResetView?: () => void
@@ -106,7 +105,6 @@ interface ControlPanelProps {
 export default function ControlPanel({
   settings,
   onChange,
-  modelInfo,
   fileName,
   onFitToModel,
   onResetView,
@@ -158,26 +156,6 @@ export default function ControlPanel({
             checked={settings.autoRotate}
             onChange={(value) => onChange({ autoRotate: value })}
           />
-          <Toggle
-            label="Wireframe"
-            checked={settings.wireframe}
-            onChange={(value) => onChange({ wireframe: value })}
-          />
-          <Toggle
-            label="White Model"
-            checked={settings.whiteModel}
-            onChange={(value) => onChange({ whiteModel: value })}
-          />
-          <Toggle
-            label="Flat Shading"
-            checked={settings.flatShading}
-            onChange={(value) => onChange({ flatShading: value })}
-          />
-          <Toggle
-            label="Ground Grid"
-            checked={settings.showGrid}
-            onChange={(value) => onChange({ showGrid: value })}
-          />
         </div>
       </PanelSection>
 
@@ -201,14 +179,6 @@ export default function ControlPanel({
             step={0.1}
             onChange={(value) => onChange({ exposure: value })}
           />
-          <Slider
-            label="Light Power"
-            value={settings.lightIntensity}
-            min={0}
-            max={5}
-            step={0.1}
-            onChange={(value) => onChange({ lightIntensity: value })}
-          />
           <div className="mt-1 flex items-center justify-between gap-3 rounded-xl px-2 py-2 transition hover:bg-white/[0.03]">
             <span className="text-sm text-white/86">Background</span>
             <input
@@ -221,31 +191,11 @@ export default function ControlPanel({
         </div>
       </PanelSection>
 
-      <PanelSection title="Model Info" hint="Quick geometry summary for the current asset.">
-        {modelInfo ? (
-          <div className="grid grid-cols-2 gap-2">
-            {([
-              ['Format', modelInfo.format.toUpperCase()],
-              ['Meshes', modelInfo.meshCount],
-              ['Materials', modelInfo.materialCount],
-              ['Textures', modelInfo.textureCount],
-              ['Vertices', modelInfo.vertexCount.toLocaleString()],
-              ['Triangles', modelInfo.triangleCount.toLocaleString()],
-            ] as [string, string | number][]).map(([label, value]) => (
-              <div key={label} className="rounded-xl border border-white/8 bg-white/[0.04] px-3 py-2">
-                <p className="text-[10px] uppercase tracking-wide text-white/40">{label}</p>
-                <p className="mt-1 text-sm font-semibold tabular-nums text-white/92">{value}</p>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-xl border border-dashed border-white/12 bg-white/[0.03] px-4 py-4 text-sm text-white/48">
-            <p className="font-medium text-white/84">{fileName ?? 'No model selected yet'}</p>
-            <p className="mt-1 text-xs leading-5">
-              Upload a GLB or GLTF file to inspect geometry counts, materials, textures, and preview settings here.
-            </p>
-          </div>
-        )}
+      <PanelSection title="Model Info">
+        <div className="rounded-xl border border-dashed border-white/12 bg-white/[0.03] px-4 py-4 text-sm text-white/48">
+          <p className="font-medium text-white/84">{fileName ?? 'No model loaded'}</p>
+          <p className="mt-1 text-xs leading-5">GLB / GLTF · drag to orbit · scroll to zoom · two-finger to pan</p>
+        </div>
       </PanelSection>
     </div>
   )
