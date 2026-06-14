@@ -129,12 +129,21 @@ async function migrate(db: Sql) {
   }
 
   try {
-    const rows = await db.unsafe<{ column_name: string }[]>(
-      `SELECT column_name FROM information_schema.columns WHERE table_name = 'models' AND column_name = 'userId'`
+    const cols = await db.unsafe<{ column_name: string }[]>(
+      `SELECT column_name FROM information_schema.columns WHERE table_name = 'models' ORDER BY ordinal_position`
     )
-    if (rows.length > 0) {
-      await db.unsafe(`ALTER TABLE models RENAME COLUMN "userId" TO user_id`)
-      console.log('>>> Renamed models.userId to user_id')
+    console.log('>>> models columns:', cols.map((r) => r.column_name).join(', '))
+
+    const renames: [string, string][] = [
+      ['userId', 'user_id'],
+      ['r2Key', 'r2_key'],
+      ['uploadedAt', 'uploaded_at'],
+    ]
+    for (const [from, to] of renames) {
+      if (cols.some((r) => r.column_name === from)) {
+        await db.unsafe(`ALTER TABLE models RENAME COLUMN "${from}" TO ${to}`)
+        console.log(`>>> Renamed models.${from} to ${to}`)
+      }
     }
   } catch (err) {
     console.error('>>> Models column rename failed:', err)
