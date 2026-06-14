@@ -76,7 +76,6 @@ export default function DropZone({
       const uploadResult = await uploadModelFile(file)
 
       if ('error' in uploadResult) {
-        revokeObjectUrl(localUrl)
         setStatusMessage('')
         setErrorMessage(uploadResult.error)
       } else {

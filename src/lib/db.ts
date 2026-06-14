@@ -122,6 +122,23 @@ async function migrate(db: Sql) {
         "updatedAt" TIMESTAMPTZ NOT NULL
       );
       CREATE INDEX IF NOT EXISTS idx_verification_identifier ON verification(identifier);
+    `)
+    console.log('>>> Auth tables migrated')
+  } catch (err) {
+    console.error('>>> Auth migration failed:', err)
+  }
+
+  try {
+    await db.unsafe(`
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'models' AND column_name = 'userId'
+        ) THEN
+          ALTER TABLE models RENAME COLUMN "userId" TO user_id;
+        END IF;
+      END $$;
 
       CREATE TABLE IF NOT EXISTS models (
         id TEXT PRIMARY KEY,
@@ -133,9 +150,9 @@ async function migrate(db: Sql) {
       );
       CREATE INDEX IF NOT EXISTS idx_models_user ON models(user_id, uploaded_at DESC);
     `)
-    console.log('>>> Database migrations completed')
+    console.log('>>> Models table migrated')
   } catch (err) {
-    console.error('>>> Migration execution failed:', err)
+    console.error('>>> Models migration failed:', err)
   }
 }
 
